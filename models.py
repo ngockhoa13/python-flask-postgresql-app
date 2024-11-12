@@ -1,8 +1,6 @@
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
-from sqlalchemy.orm import validates
-from sqlalchemy.orm import relationship  # Thêm dòng này
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text, Boolean, TIMESTAMP
+from sqlalchemy.orm import relationship
 from app import db
-
 
 class User(db.Model):
     __tablename__ = 'user'
@@ -44,7 +42,7 @@ class Comment(db.Model):
     __tablename__ = 'commentsBlog'
     
     id = Column(Integer, primary_key=True, nullable=False, autoincrement=True)
-    title = Column(String(100), ForeignKey("blogPosts.title"), nullable=False)
+    title = Column(String(100), ForeignKey("blogPosts.id"), nullable=False)  # Sửa ForeignKey
     username = Column(String(20))
     comment = Column(Text, nullable=False)
     
@@ -100,7 +98,7 @@ class Notification(db.Model):
     ischat = Column(Boolean)
 
     def __str__(self):
-        return f"Notification for user {self.myid}: {self.content}"
+        return f"Notification {self.count} for user {self.myid}: {self.content}"
 
 # Định nghĩa bảng LikedBlog
 class LikedBlog(db.Model):

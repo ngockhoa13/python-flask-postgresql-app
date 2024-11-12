@@ -5,7 +5,7 @@ from flask import Flask, redirect, render_template, request, send_from_directory
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf.csrf import CSRFProtect
-
+from functools import wraps
 
 app = Flask(__name__, static_folder='static')
 csrf = CSRFProtect(app)

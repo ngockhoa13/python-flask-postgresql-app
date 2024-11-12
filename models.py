@@ -1,6 +1,6 @@
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import validates
-
+from sqlalchemy.orm import relationship  # Thêm dòng này
 from app import db
 
 

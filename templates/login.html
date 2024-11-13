@@ -134,16 +134,30 @@
     </div>
     <div class="osu-page osu-page--generic">
         <form method="POST" action="/login">
-            {{ form.hidden_tag() }} <!-- Đây là nơi CSRF token sẽ được bao gồm tự động -->
+            {{ form.hidden_tag() }} <!-- CSRF token -->
+            
             <div class="account-edit-entry js-account-edit">
-                <input class="account-edit-entry__input js-account-edit__input" name="email" type="email" value="{{ email or '' }}">
+                {{ form.email(class="account-edit-entry__input js-account-edit__input", value=email or '') }}  <!-- Sử dụng form.email -->
                 <div class="account-edit-entry__label"> email </div>
+                {% if form.email.errors %}
+                    <div class="error-message">
+                        {{ form.email.errors[0] }}
+                    </div>
+                {% endif %}
             </div>
+    
             <div class="account-edit-entry js-account-edit">
-                <input class="account-edit-entry__input js-account-edit__input" name="password" type="password">
+                {{ form.password(class="account-edit-entry__input js-account-edit__input") }}  <!-- Sử dụng form.password -->
                 <div class="account-edit-entry__label"> password </div>
+                {% if form.password.errors %}
+                    <div class="error-message">
+                        {{ form.password.errors[0] }}
+                    </div>
+                {% endif %}
             </div>
-            <input class="account-edit-entry__input js-account-edit__input" name="flag" type="hidden">
+    
+            <div class="account-edit-entry__input js-account-edit__input" name="flag" type="hidden"></div>
+    
             <div class="account-edit-entry js-account-edit">
                 <div class="account-edit-entry account-edit-entry--no-label">
                     <button class="btn-osu-big btn-osu-big--account-edit" type="submit">
@@ -152,13 +166,13 @@
                 </div>
             </div>
         </form>
+    
         {% if message %}
             <div class="alert alert-danger" role="alert">
                 {{ message }}
             </div>
         {% endif %}
     </div>
-</div>
 <footer class="no-print footer">
     <div class="footer__row">
         <a class="footer__link" href="#"> Terms </a>

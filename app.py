@@ -105,37 +105,38 @@ def register():
 
 from werkzeug.security import check_password_hash
 
-# Login route
+class LoginForm(FlaskForm):
+    email = StringField('Email', validators=[DataRequired(), Email()])
+    password = PasswordField('Password', validators=[DataRequired()])
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
     message = ""
-    try:
-        if request.method == "POST":
-            emailAddr = request.form['email'].strip()
-            password = request.form['password'].strip()
+    form = LoginForm()  # Khởi tạo form
 
-            cursor, conn = getDB()
-            try:
-                cursor.execute("SELECT id, password FROM \"user\" WHERE emailAddr = %s", (emailAddr,))
-                user_info = cursor.fetchone()
+    if request.method == "POST" and form.validate_on_submit():
+        emailAddr = form.email.data.strip()  # Lấy email từ form
+        password = form.password.data.strip()  # Lấy password từ form
 
-                if user_info:
-                    id, hashed_password = user_info
-                    if check_password_hash(hashed_password, password):
-                        session['loggedin'] = True
-                        session['id'] = id
-                        return redirect('/home')   
-                    else:
-                        message = "Wrong Email or Password"
+        cursor, conn = getDB()
+        try:
+            cursor.execute("SELECT id, password FROM \"user\" WHERE emailAddr = %s", (emailAddr,))
+            user_info = cursor.fetchone()
+
+            if user_info:
+                id, hashed_password = user_info
+                if check_password_hash(hashed_password, password):
+                    session['loggedin'] = True
+                    session['id'] = id
+                    return redirect('/home')   
                 else:
                     message = "Wrong Email or Password"
-            finally:
-                cursor.close()
-                conn.close()
-    except Exception as error:
-        print(f"ERROR: {error}", flush=True)
-    
-    return render_template("login.html", message=message)
+            else:
+                message = "Wrong Email or Password"
+        finally:
+            cursor.close()
+            conn.close()
+    return render_template("login.html", form=form, message=message)
 
 # Home route
 @app.route("/")

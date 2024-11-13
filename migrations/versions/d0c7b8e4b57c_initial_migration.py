@@ -31,14 +31,14 @@ def upgrade():
         sa.Column('title', sa.String(100), nullable=False),
         sa.Column('content', sa.Text(), nullable=False),
         sa.Column('imagepath', sa.String(255), nullable=True),
-        sa.Column('publish', sa.Boolean(), default=False),
-        sa.Column('likes', sa.Integer(), default=0),
+        sa.Column('publish', sa.Boolean(), server_default=sa.text('FALSE')),
+        sa.Column('likes', sa.Integer(), server_default=sa.text('0')),
     )
 
-    # Create 'commentsBlog' table
+    # Create 'commentsBlog' table with renamed column `post_id`
     op.create_table('commentsBlog',
         sa.Column('id', sa.Integer(), primary_key=True, autoincrement=True),
-        sa.Column('title', sa.String(100), sa.ForeignKey('blogPosts.id'), nullable=False),
+        sa.Column('post_id', sa.Integer(), sa.ForeignKey('blogPosts.id'), nullable=False),
         sa.Column('username', sa.String(20), nullable=True),
         sa.Column('comment', sa.Text(), nullable=False),
     )

@@ -17,7 +17,6 @@ class User(db.Model):
     def __str__(self):
         return self.username
 
-# Định nghĩa bảng BlogPost
 class BlogPost(db.Model):
     __tablename__ = 'blogPosts'
     
@@ -37,17 +36,16 @@ class BlogPost(db.Model):
     def __str__(self):
         return self.title
 
-# Định nghĩa bảng Comment
+# Sửa tên cột `title` thành `post_id` trong bảng Comment
 class Comment(db.Model):
     __tablename__ = 'commentsBlog'
     id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.Integer, db.ForeignKey('blogPosts.id'))  # Thay 'VARCHAR' bằng 'INTEGER'
+    post_id = db.Column(db.Integer, db.ForeignKey('blogPosts.id'))  # Đổi tên `title` thành `post_id`
     username = db.Column(db.String(20))
     comment = db.Column(db.Text, nullable=False)
 
-    blogPost = db.relationship('BlogPost', back_populates='comments')
+    blog_post = db.relationship('BlogPost', back_populates='comments')
 
-# Định nghĩa bảng Chat
 class Chat(db.Model):
     __tablename__ = 'chat'
     
@@ -58,7 +56,6 @@ class Chat(db.Model):
     def __str__(self):
         return f"Chat between {self.userID1} and {self.userID2}"
 
-# Định nghĩa bảng Message
 class Message(db.Model):
     __tablename__ = 'messages'
     
@@ -68,7 +65,6 @@ class Message(db.Model):
     def __str__(self):
         return f"Message in chat room {self.room_id}"
 
-# Định nghĩa bảng ChatMessage
 class ChatMessage(db.Model):
     __tablename__ = 'chat_messages'
     
@@ -82,7 +78,6 @@ class ChatMessage(db.Model):
     def __str__(self):
         return f"{self.sender_username}: {self.content}"
 
-# Định nghĩa bảng Notification
 class Notification(db.Model):
     __tablename__ = 'notification'
     
@@ -96,7 +91,6 @@ class Notification(db.Model):
     def __str__(self):
         return f"Notification {self.count} for user {self.myid}: {self.content}"
 
-# Định nghĩa bảng LikedBlog
 class LikedBlog(db.Model):
     __tablename__ = 'likedBlogs'
     
@@ -110,6 +104,5 @@ class LikedBlog(db.Model):
     def __str__(self):
         return f"User {self.userID} liked blog {self.title}"
 
-# Hàm khởi tạo database (nếu cần thiết, thông qua SQLAlchemy)
 def init_db():
     db.create_all()

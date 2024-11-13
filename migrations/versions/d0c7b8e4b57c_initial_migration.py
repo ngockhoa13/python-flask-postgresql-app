@@ -14,6 +14,7 @@ branch_labels = None
 depends_on = None
 
 def upgrade():
+   def upgrade():
     # Create 'user' table
     op.create_table('user',
         sa.Column('id', sa.String(36), primary_key=True, unique=True, nullable=False),
@@ -31,14 +32,14 @@ def upgrade():
         sa.Column('title', sa.String(100), nullable=False),
         sa.Column('content', sa.Text(), nullable=False),
         sa.Column('imagepath', sa.String(255), nullable=True),
-        sa.Column('publish', sa.Boolean(), server_default=sa.text('FALSE')),
-        sa.Column('likes', sa.Integer(), server_default=sa.text('0')),
+        sa.Column('publish', sa.Boolean(), default=False),
+        sa.Column('likes', sa.Integer(), default=0),
     )
 
-    # Create 'commentsBlog' table with renamed column `post_id`
+    # Create 'commentsBlog' table
     op.create_table('commentsBlog',
         sa.Column('id', sa.Integer(), primary_key=True, autoincrement=True),
-        sa.Column('post_id', sa.Integer(), sa.ForeignKey('blogPosts.id'), nullable=False),
+        sa.Column('title', sa.Integer(), sa.ForeignKey('blogPosts.id'), nullable=False),
         sa.Column('username', sa.String(20), nullable=True),
         sa.Column('comment', sa.Text(), nullable=False),
     )
@@ -50,13 +51,13 @@ def upgrade():
         sa.Column('userID2', sa.String(36), sa.ForeignKey('user.id'), nullable=False),
     )
 
-    # Create 'messages' table
+    # Create 'messages' table with unique constraint on 'room_id'
     op.create_table('messages',
         sa.Column('id', sa.Integer(), primary_key=True, autoincrement=True),
-        sa.Column('room_id', sa.String(50), sa.ForeignKey('chat.id'), nullable=False),
+        sa.Column('room_id', sa.String(50), unique=True, nullable=False),
     )
 
-    # Create 'chat_messages' table
+    # Create 'chat_messages' table with foreign key reference to 'messages.room_id'
     op.create_table('chat_messages',
         sa.Column('id', sa.Integer(), primary_key=True, autoincrement=True),
         sa.Column('content', sa.Text(), nullable=False),

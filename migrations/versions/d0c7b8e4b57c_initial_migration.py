@@ -6,6 +6,7 @@ Create Date: <timestamp>
 """
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy import inspect  # Thêm dòng này để import inspect
 
 # revision identifiers, used by Alembic.
 revision = '<your_revision_id>'

@@ -59,18 +59,30 @@ def check_session(f):
         return f(*args, **kwargs)
     return decorated_function
 
+from flask_wtf import FlaskForm
+from wtforms import StringField, PasswordField, EmailField
+from wtforms.validators import DataRequired, Email
+
+class RegisterForm(FlaskForm):
+    username = StringField('Username', validators=[DataRequired()])
+    password = PasswordField('Password', validators=[DataRequired()])
+    email = EmailField('Email', validators=[DataRequired(), Email()])
+    csrf_token = None  # CSRF token is automatically handled by Flask-WT
+
 # Register route
 @app.route("/register", methods=["GET", "POST"])
 def register():
+    form = RegisterForm()
     message = ""
-    if request.method == "POST":
-        emailAddr = request.form['email'].strip()
-        username = request.form['username'].strip()
-        password = request.form['password'].strip()
+    
+    if form.validate_on_submit():
+        emailAddr = form.email.data.strip()
+        username = form.username.data.strip()
+        password = form.password.data.strip()
         
         if len(password) < 6:
             flash("Password must be at least 6 characters.")
-            return render_template("register.html", message=message)
+            return render_template("register.html", form=form, message=message)
 
         cursor, conn = getDB()
         cursor.execute("SELECT username FROM \"user\" WHERE emailAddr = %s", (emailAddr,))
@@ -89,7 +101,7 @@ def register():
             conn.commit()
             return redirect('/home')
     
-    return render_template("register.html", message=message)
+    return render_template("register.html", form=form, message=message)
 
 
 # Login route

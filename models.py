@@ -40,16 +40,12 @@ class BlogPost(db.Model):
 # Định nghĩa bảng Comment
 class Comment(db.Model):
     __tablename__ = 'commentsBlog'
-    
-    id = Column(Integer, primary_key=True, nullable=False, autoincrement=True)
-    title = Column(String(100), ForeignKey("blogPosts.id"), nullable=False)  # Sửa ForeignKey
-    username = Column(String(20))
-    comment = Column(Text, nullable=False)
-    
-    blog_post = relationship("BlogPost", back_populates="comments")
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.Integer, db.ForeignKey('blogPosts.id'))  # Thay 'VARCHAR' bằng 'INTEGER'
+    username = db.Column(db.String(20))
+    comment = db.Column(db.Text, nullable=False)
 
-    def __str__(self):
-        return f"{self.username}: {self.comment}"
+    blogPost = db.relationship('BlogPost', back_populates='comments')
 
 # Định nghĩa bảng Chat
 class Chat(db.Model):

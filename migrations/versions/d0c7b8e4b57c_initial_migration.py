@@ -6,16 +6,15 @@ Create Date: <timestamp>
 """
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy import inspect  # Thêm dòng này để import inspect
+from sqlalchemy import inspect
 
 # revision identifiers, used by Alembic.
-revision = '<your_revision_id>'
+revision = 7e6556f5dc0c
 down_revision = None  # Set previous migration ID if any
 branch_labels = None
 depends_on = None
 
 def upgrade():
-   def upgrade():
     # Create 'user' table
     op.create_table('user',
         sa.Column('id', sa.String(36), primary_key=True, unique=True, nullable=False),
@@ -25,12 +24,12 @@ def upgrade():
         sa.Column('password', sa.String(60), nullable=False),
     )
 
-    # Create 'blogPosts' table
+    # Create 'blogPosts' table with 'title' as unique
     op.create_table('blogPosts',
         sa.Column('id', sa.Integer(), primary_key=True, autoincrement=True),
         sa.Column('userID', sa.String(36), sa.ForeignKey('user.id'), nullable=True),
         sa.Column('authorname', sa.String(20), nullable=True),
-        sa.Column('title', sa.String(100), nullable=False),
+        sa.Column('title', sa.String(100), unique=True, nullable=False),  # 'title' added as unique
         sa.Column('content', sa.Text(), nullable=False),
         sa.Column('imagepath', sa.String(255), nullable=True),
         sa.Column('publish', sa.Boolean(), default=False),
@@ -84,7 +83,6 @@ def upgrade():
         sa.Column('userID', sa.String(36), sa.ForeignKey('user.id', ondelete='CASCADE'), primary_key=True, nullable=False),
         sa.Column('liked', sa.Boolean(), nullable=True),
     )
-
 
 def downgrade():
     conn = op.get_bind()

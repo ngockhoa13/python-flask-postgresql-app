@@ -8,6 +8,7 @@ from flask_wtf.csrf import CSRFProtect
 from functools import wraps
 
 app = Flask(__name__, static_folder='static')
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'default-secret-key')
 csrf = CSRFProtect(app)
 
 # WEBSITE_HOSTNAME exists only in production environment

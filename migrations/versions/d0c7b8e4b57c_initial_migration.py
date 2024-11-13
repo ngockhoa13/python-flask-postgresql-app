@@ -9,7 +9,7 @@ import sqlalchemy as sa
 from sqlalchemy import inspect
 
 # revision identifiers, used by Alembic.
-revision = 7e6556f5dc0c
+revision =  '<your_revision_id>'
 down_revision = None  # Set previous migration ID if any
 branch_labels = None
 depends_on = None

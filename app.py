@@ -40,7 +40,7 @@ from models import User, BlogPost, Comment, Chat, Message, ChatMessage, Notifica
 # Hàm để lấy kết nối và cursor
 def getDB():
     # Lấy thông tin cấu hình từ biến môi trường hoặc cấu hình trong app
-    db_url = os.getenv('DATABASE_URL', 'postgresql://user:password@localhost/dbname')
+    db_url = os.getenv('DATABASE_URL', 'postgresql://getpkduhis:bC2LNlRv0$Kv$AbV@group7-python-flask-postgresql-server.postgres.database.azure.com:5432/group7-python-flask-postgresql-database')
 
     # Thiết lập kết nối với PostgreSQL
     conn = psycopg2.connect(db_url)

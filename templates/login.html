@@ -134,6 +134,7 @@
     </div>
     <div class="osu-page osu-page--generic">
         <form method="POST" action="/login">
+            {{ form.hidden_tag() }} <!-- Đây là nơi CSRF token sẽ được bao gồm tự động -->
             <div class="account-edit-entry js-account-edit">
                 <input class="account-edit-entry__input js-account-edit__input" name="email" type="email" value="{{ email or '' }}">
                 <div class="account-edit-entry__label"> email </div>

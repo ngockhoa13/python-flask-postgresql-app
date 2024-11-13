@@ -142,6 +142,7 @@
       </div>
       <div class="osu-page osu-page--generic">
         <form method="POST" action="/register">
+          {{ form.csrf_token }}  <!-- Thêm CSRF token vào form -->
           <div class="account-edit-entry js-account-edit">
             <input
               class="account-edit-entry__input js-account-edit__input"

@@ -1,10 +1,12 @@
 import os
+import psycopg2
+import uuid
 from datetime import datetime
-
-from flask import Flask, redirect, render_template, request, send_from_directory, url_for, session
-from flask_migrate import Migrate
+from flask import Flask, redirect, render_template, request, flash, session, url_for
 from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
 from flask_wtf.csrf import CSRFProtect
+from werkzeug.security import generate_password_hash
 from functools import wraps
 
 app = Flask(__name__, static_folder='static')
@@ -35,6 +37,20 @@ migrate = Migrate(app, db)
 # The import must be done after db initialization due to circular import issue
 from models import User, BlogPost, Comment, Chat, Message, ChatMessage, Notification, LikedBlog
 
+# Hàm để lấy kết nối và cursor
+def getDB():
+    # Lấy thông tin cấu hình từ biến môi trường hoặc cấu hình trong app
+    db_url = os.getenv('DATABASE_URL', 'postgresql://user:password@localhost/dbname')
+
+    # Thiết lập kết nối với PostgreSQL
+    conn = psycopg2.connect(db_url)
+    
+    # Tạo cursor để thực thi câu lệnh SQL
+    cursor = conn.cursor()
+    
+    # Trả về cursor và kết nối để sử dụng trong ứng dụng
+    return cursor, conn
+
 def check_session(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -57,7 +73,8 @@ def register():
             return render_template("register.html", message=message)
 
         cursor, conn = getDB()
-        rows = cursor.execute("SELECT username FROM user WHERE emailAddr = ?", (emailAddr,)).fetchall()
+        cursor.execute("SELECT username FROM \"user\" WHERE emailAddr = %s", (emailAddr,))
+        rows = cursor.fetchall()
 
         if rows:
             message = "User already exists"
@@ -67,10 +84,11 @@ def register():
             session['loggedin'] = True
             session['id'] = id
 
-            query = "INSERT INTO user (id, username, emailAddr, password) VALUES (?, ?, ?, ?)"
+            query = "INSERT INTO \"user\" (id, username, emailAddr, password) VALUES (%s, %s, %s, %s)"
             cursor.execute(query, (id, username, emailAddr, hashed_password))
             conn.commit()
             return redirect('/home')
+    
     return render_template("register.html", message=message)
 
 

@@ -86,26 +86,37 @@ def upgrade():
 
 
 def downgrade():
-    # Drop 'likedBlogs' table
-    op.drop_table('likedBlogs')
+    conn = op.get_bind()
+    inspector = inspect(conn)
 
-    # Drop 'notification' table
-    op.drop_table('notification')
+    # Drop 'likedBlogs' table if it exists
+    if 'likedBlogs' in inspector.get_table_names():
+        op.drop_table('likedBlogs')
 
-    # Drop 'chat_messages' table
-    op.drop_table('chat_messages')
+    # Drop 'notification' table if it exists
+    if 'notification' in inspector.get_table_names():
+        op.drop_table('notification')
 
-    # Drop 'messages' table
-    op.drop_table('messages')
+    # Drop 'chat_messages' table if it exists
+    if 'chat_messages' in inspector.get_table_names():
+        op.drop_table('chat_messages')
 
-    # Drop 'chat' table
-    op.drop_table('chat')
+    # Drop 'messages' table if it exists
+    if 'messages' in inspector.get_table_names():
+        op.drop_table('messages')
 
-    # Drop 'commentsBlog' table
-    op.drop_table('commentsBlog')
+    # Drop 'chat' table if it exists
+    if 'chat' in inspector.get_table_names():
+        op.drop_table('chat')
 
-    # Drop 'blogPosts' table
-    op.drop_table('blogPosts')
+    # Drop 'commentsBlog' table if it exists
+    if 'commentsBlog' in inspector.get_table_names():
+        op.drop_table('commentsBlog')
 
-    # Drop 'user' table
-    op.drop_table('user')
+    # Drop 'blogPosts' table if it exists
+    if 'blogPosts' in inspector.get_table_names():
+        op.drop_table('blogPosts')
+
+    # Drop 'user' table if it exists
+    if 'user' in inspector.get_table_names():
+        op.drop_table('user')

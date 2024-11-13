@@ -103,34 +103,39 @@ def register():
     
     return render_template("register.html", form=form, message=message)
 
+from werkzeug.security import check_password_hash
 
 # Login route
 @app.route("/login", methods=["GET", "POST"])
 def login():
+    message = ""
     try:
         if request.method == "POST":
             emailAddr = request.form['email'].strip()
             password = request.form['password'].strip()
 
             cursor, conn = getDB()
-            user_info = cursor.execute("SELECT id, password FROM user WHERE emailAddr = ?", (emailAddr,)).fetchone()
+            try:
+                cursor.execute("SELECT id, password FROM \"user\" WHERE emailAddr = %s", (emailAddr,))
+                user_info = cursor.fetchone()
 
-            if user_info:
-                id, hashed_password = user_info
-                if check_password_hash(hashed_password, password):
-                    session['loggedin'] = True
-                    session['id'] = id
-                    return redirect('/home')   
+                if user_info:
+                    id, hashed_password = user_info
+                    if check_password_hash(hashed_password, password):
+                        session['loggedin'] = True
+                        session['id'] = id
+                        return redirect('/home')   
+                    else:
+                        message = "Wrong Email or Password"
                 else:
                     message = "Wrong Email or Password"
-                    return render_template('login.html', message=message)
-            else:
-                message = "Wrong Email or Password"
-                return render_template('login.html', message=message)
+            finally:
+                cursor.close()
+                conn.close()
     except Exception as error:
         print(f"ERROR: {error}", flush=True)
-    return render_template("login.html")
-
+    
+    return render_template("login.html", message=message)
 
 # Home route
 @app.route("/")

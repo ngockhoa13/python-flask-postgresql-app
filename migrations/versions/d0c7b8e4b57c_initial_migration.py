@@ -7,7 +7,7 @@ Create Date: <timestamp>
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy import inspect
-
+import psycopg2
 # revision identifiers, used by Alembic.
 revision =  '<your_revision_id>'
 down_revision = None  # Set previous migration ID if any

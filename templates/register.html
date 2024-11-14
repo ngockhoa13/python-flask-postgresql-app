@@ -142,12 +142,12 @@
         </div>
         <div class="osu-page osu-page--generic">
           <form method="POST" action="/register">
-            {{ form.csrf_token() }}  <!-- Đảm bảo sử dụng đúng cú pháp cho CSRF token -->
+            {{ form.csrf_token }} <!-- CSRF token sửa lại cú pháp -->
             <div class="account-edit-entry js-account-edit">
               <input
                 class="account-edit-entry__input js-account-edit__input"
                 name="username"
-                value="{{ form.username.data }}"  <!-- Hiển thị giá trị từ form -->
+                value="{{ form.username.data }}" /> <!-- Đóng thẻ input -->
               <div class="account-edit-entry__label">username</div>
             </div>
             <div class="account-edit-entry js-account-edit">
@@ -155,7 +155,7 @@
                 class="account-edit-entry__input js-account-edit__input"
                 name="password"
                 type="password"
-                value="{{ form.password.data }}"  <!-- Hiển thị giá trị từ form -->
+                value="{{ form.password.data }}" /> <!-- Đóng thẻ input -->
               <div class="account-edit-entry__label">password</div>
             </div>
             <div class="account-edit-entry js-account-edit">
@@ -163,7 +163,7 @@
                 class="account-edit-entry__input js-account-edit__input"
                 name="email"
                 type="email"
-                value="{{ form.email.data }}"  <!-- Hiển thị giá trị từ form -->
+                value="{{ form.email.data }}" /> <!-- Đóng thẻ input -->
               <div class="account-edit-entry__label">email</div>
             </div>
             <input

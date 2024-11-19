@@ -123,7 +123,7 @@ def login():
         cursor, conn = getDB()
         try:
             # Đảm bảo rằng tên cột trong câu truy vấn chính xác
-            cursor.execute("SELECT id, password FROM \"user\" WHERE emailAddr = %s", (emailAddr,))
+            cursor.execute('SELECT id, password FROM "user" WHERE "emailAddr" = %s', (emailAddr,))
             user_info = cursor.fetchone()
 
             if user_info:

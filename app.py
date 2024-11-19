@@ -195,11 +195,11 @@ def home():
         cursor.execute("SELECT id FROM \"user\" WHERE id = %s", (id,))
         user_data = cursor.fetchone()
         if user_data:        
-            count_noti = cursor.execute("SELECT count(*) from notification where myid = %s", (str(id),)).fetchone()
-            count_noti_chat = cursor.execute("SELECT count(*) from notification where myid = %s and ischat = 1", (str(id),)).fetchone()
+            count_noti = cursor.execute("SELECT count(*) from \"notification\" where myid = %s", (str(id),)).fetchone()
+            count_noti_chat = cursor.execute("SELECT count(*) from \"notification\" where myid = %s and ischat = 1", (str(id),)).fetchone()
 
-            blog_info = cursor.execute("SELECT title, content FROM blogPosts WHERE publish = 1 ORDER BY RANDOM() LIMIT 5").fetchall()
-            user_info = cursor.execute("SELECT username FROM user WHERE id = %s", (id,)).fetchone()
+            blog_info = cursor.execute("SELECT title, content FROM \"blogPosts\" WHERE publish = 1 ORDER BY RANDOM() LIMIT 5").fetchall()
+            user_info = cursor.execute("SELECT username FROM \"user\" WHERE id = %s", (id,)).fetchone()
 
             avatar_path = os.path.join(app.config['UPLOAD_FOLDER'], id, 'avatar.jpg')
             if os.path.exists(avatar_path):
@@ -207,14 +207,14 @@ def home():
             else:
                 profile_pic = os.path.join("", "../../img/avatar.jpg")
 
-            noti_list = cursor.execute("SELECT myid, content, timestamp, from_id, ischat from notification where myid = %s", (str(id),)).fetchall()
+            noti_list = cursor.execute("SELECT myid, content, timestamp, from_id, ischat from \"notification\" where myid = %s", (str(id),)).fetchall()
             if noti_list:
                 for noti in noti_list:
                     myid, content, timestamp, fromid, ischat = noti
-                    sender_name = cursor.execute("SELECT username from user where id = %s", (fromid,)).fetchone()
+                    sender_name = cursor.execute("SELECT username from \"user\" where id = %s", (fromid,)).fetchone()
                     sender_ava_path = os.path.join(app.config['UPLOAD_FOLDER'], fromid, 'avatar.jpg')
                     sender_pic = fromid + '/avatar.jpg' if os.path.exists(sender_ava_path) else os.path.join("", "../../img/avatar.jpg")
-                    rid = cursor.execute("SELECT id FROM chat WHERE (userID1 = %s AND userID2 = %s) OR (userID1 = %s AND userID2 = %s)", (id, fromid, fromid, id)).fetchall()
+                    rid = cursor.execute("SELECT id FROM \"chat\" WHERE (userID1 = %s AND userID2 = %s) OR (userID1 = %s AND userID2 = %s)", (id, fromid, fromid, id)).fetchall()
                     rid = rid[0][0] if rid else None
                     
                     data.append({

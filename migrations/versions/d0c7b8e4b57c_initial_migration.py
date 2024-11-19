@@ -18,24 +18,6 @@ def upgrade():
     conn = op.get_bind()
     inspector = inspect(conn)
 
-    # Drop tables if they exist
-    if 'likedBlogs' in inspector.get_table_names():
-        op.drop_table('likedBlogs')
-    if 'notification' in inspector.get_table_names():
-        op.drop_table('notification')
-    if 'chat_messages' in inspector.get_table_names():
-        op.drop_table('chat_messages')
-    if 'messages' in inspector.get_table_names():
-        op.drop_table('messages')
-    if 'chat' in inspector.get_table_names():
-        op.drop_table('chat')
-    if 'commentsBlog' in inspector.get_table_names():
-        op.drop_table('commentsBlog')
-    if 'blogPosts' in inspector.get_table_names():
-        op.drop_table('blogPosts')
-    if 'user' in inspector.get_table_names():
-        op.drop_table('user')
-
      # Create 'user' table with UUID for 'id'
     op.create_table('user',
         sa.Column('id', sa.UUID(), primary_key=True, unique=True, nullable=False, default=uuid.uuid4),

@@ -91,6 +91,7 @@ class RegisterForm(FlaskForm):
 @app.route("/register", methods=["GET", "POST"])
 def register():
     form = RegisterForm()
+    message = ""
 
     if form.validate_on_submit():
         emailAddr = form.email.data.strip()
@@ -99,33 +100,40 @@ def register():
 
         # Kiểm tra tính mạnh của mật khẩu
         if not re.fullmatch(r'^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,}$', password):
-            flash("Password must be at least 6 characters, include uppercase, lowercase, numbers, and special characters.")
-            return render_template("register.html", form=form)
+            message = "Password must be at least 6 characters, include uppercase, lowercase, numbers, and special characters."
+            return render_template("register.html", form=form, message=message)
 
         # Kiểm tra username hợp lệ
         if not re.match(r'^[A-Za-z0-9_]+$', username):
-            flash("Username must only contain letters, numbers, or underscores.")
-            return render_template("register.html", form=form)
+            message = "Username must only contain letters, numbers, or underscores."
+            return render_template("register.html", form=form, message=message)
 
         # Kiểm tra email tồn tại
-        with getDB() as (cursor, conn):
-            cursor.execute('SELECT id, password FROM "user" WHERE "emailAddr" = %s', (emailAddr,))
-            if cursor.fetchone():
-                flash("User already exists")
-            else:
-                id = str(uuid.uuid4())
-                hashed_password = generate_password_hash(password)
-                try:
-                    cursor.execute("INSERT INTO \"user\" (id, username, emailAddr, password) VALUES (%s, %s, %s, %s)", 
-                                   (id, username, emailAddr, hashed_password))
-                    conn.commit()
-                    session['loggedin'] = True
-                    session['id'] = id
-                    return redirect('/home')
-                except Exception as e:
-                    flash(f"An error occurred during registration: {e}")
+        try:
+            # Sử dụng context manager để đảm bảo việc mở và đóng kết nối cơ sở dữ liệu tự động
+            with getDB() as db:
+                cursor, conn = db.__enter__()  # Nhận cursor và conn từ context manager
 
-    return render_template("register.html", form=form)
+                cursor.execute('SELECT id, password FROM "user" WHERE "emailAddr" = %s', (emailAddr,))
+                if cursor.fetchone():
+                    message = "User already exists"
+                else:
+                    id = str(uuid.uuid4())
+                    hashed_password = generate_password_hash(password)
+                    try:
+                        cursor.execute("INSERT INTO \"user\" (id, username, emailAddr, password) VALUES (%s, %s, %s, %s)", 
+                                       (id, username, emailAddr, hashed_password))
+                        conn.commit()
+                        session['loggedin'] = True
+                        session['id'] = id
+                        return redirect('/home')
+                    except Exception as e:
+                        message = f"An error occurred during registration: {e}"
+        except Exception as e:
+            message = f"Database error: {str(e)}"
+
+    return render_template("register.html", form=form, message=message)
+
 
 
 
@@ -145,31 +153,32 @@ def login():
         emailAddr = form.email.data.strip()  # Lấy email từ form
         password = form.password.data.strip()  # Lấy password từ form
 
-        cursor, conn = getDB()
         try:
-            # Đảm bảo rằng tên cột trong câu truy vấn chính xác
-            cursor.execute('SELECT id, password FROM "user" WHERE "emailAddr" = %s', (emailAddr,))
-            user_info = cursor.fetchone()
+            # Sử dụng context manager để tự động quản lý kết nối và cursor
+            with getDB() as db:
+                cursor, conn = db.__enter__()  # Nhận cursor và conn từ context manager
 
-            if user_info:
-                id, hashed_password = user_info
-                # Kiểm tra mật khẩu
-                if check_password_hash(hashed_password, password):
-                    session['loggedin'] = True
-                    session['id'] = id
-                    return redirect('/home')   
+                # Đảm bảo rằng tên cột trong câu truy vấn chính xác
+                cursor.execute('SELECT id, password FROM "user" WHERE "emailAddr" = %s', (emailAddr,))
+                user_info = cursor.fetchone()
+
+                if user_info:
+                    id, hashed_password = user_info
+                    # Kiểm tra mật khẩu
+                    if check_password_hash(hashed_password, password):
+                        session['loggedin'] = True
+                        session['id'] = id
+                        return redirect('/home')   
+                    else:
+                        message = "Wrong Email or Password"
                 else:
                     message = "Wrong Email or Password"
-            else:
-                message = "Wrong Email or Password"
         except Exception as e:
             # Log lỗi nếu có
             message = f"Error: {str(e)}"
-        finally:
-            cursor.close()
-            conn.close()
 
     return render_template("login.html", form=form, message=message)
+
 
 # Home route
 @app.route("/")

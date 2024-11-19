@@ -142,46 +142,38 @@
         </div>
         <div class="osu-page osu-page--generic">
           <form method="POST" action="/register">
-            {{ form.csrf_token }} <!-- CSRF token sửa lại cú pháp -->
+            {{ form.hidden_tag() }} <!-- CSRF token -->
+            
             <div class="account-edit-entry js-account-edit">
-              <input
-                class="account-edit-entry__input js-account-edit__input"
-                name="username"
-                value="{{ form.username.data }}" /> <!-- Đóng thẻ input -->
-              <div class="account-edit-entry__label">username</div>
+                {{ form.username(class="account-edit-entry__input js-account-edit__input", value=form.username.data or '') }}
+                <div class="account-edit-entry__label">Username</div>
+                {% if form.username.errors %}
+                    <div class="error-message">{{ form.username.errors[0] }}</div>
+                {% endif %}
             </div>
+        
             <div class="account-edit-entry js-account-edit">
-              <input
-                class="account-edit-entry__input js-account-edit__input"
-                name="password"
-                type="password"
-                value="{{ form.password.data }}" /> <!-- Đóng thẻ input -->
-              <div class="account-edit-entry__label">password</div>
+                {{ form.password(class="account-edit-entry__input js-account-edit__input") }}
+                <div class="account-edit-entry__label">Password</div>
+                {% if form.password.errors %}
+                    <div class="error-message">{{ form.password.errors[0] }}</div>
+                {% endif %}
             </div>
+        
             <div class="account-edit-entry js-account-edit">
-              <input
-                class="account-edit-entry__input js-account-edit__input"
-                name="email"
-                type="email"
-                value="{{ form.email.data }}" /> <!-- Đóng thẻ input -->
-              <div class="account-edit-entry__label">email</div>
+                {{ form.email(class="account-edit-entry__input js-account-edit__input", value=form.email.data or '') }}
+                <div class="account-edit-entry__label">Email</div>
+                {% if form.email.errors %}
+                    <div class="error-message">{{ form.email.errors[0] }}</div>
+                {% endif %}
             </div>
-            <input
-              class="account-edit-entry__input js-account-edit__input"
-              name="flag"
-              type="hidden"
-            />
+        
             <div class="account-edit-entry js-account-edit">
-              <div class="account-edit-entry account-edit-entry--no-label">
-                <button
-                  class="btn-osu-big btn-osu-big--account-edit"
-                  type="submit"
-                >
-                  <div class="btn-osu">register</div>
+                <button type="submit" class="btn-osu-big btn-osu-big--account-edit">
+                    <div class="btn-osu">Register</div>
                 </button>
-              </div>
             </div>
-          </form>
+        </form>        
           {% if message %}
             <div class="alert alert-danger" role="alert">{{ message }}</div>
           {% endif %}

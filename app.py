@@ -74,38 +74,34 @@ class RegisterForm(FlaskForm):
 @app.route("/register", methods=["GET", "POST"])
 def register():
     form = RegisterForm()
-    
-    if form.validate_on_submit():
-        emailAddr = form.email.data.strip()  # Lấy email từ form
-        username = form.username.data.strip()  # Lấy username từ form
-        password = form.password.data.strip()  # Lấy password từ form
 
-        # Kiểm tra tính mạnh của mật khẩu (nếu cần)
+    if form.validate_on_submit():
+        emailAddr = form.email.data.strip()
+        username = form.username.data.strip()
+        password = form.password.data.strip()
+
+        # Kiểm tra tính mạnh của mật khẩu
         if not re.fullmatch(r'^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,}$', password):
             flash("Password must be at least 6 characters, include uppercase, lowercase, numbers, and special characters.")
             return render_template("register.html", form=form)
 
-        # Kiểm tra username chỉ chứa ký tự hợp lệ
+        # Kiểm tra username hợp lệ
         if not re.match(r'^[A-Za-z0-9_]+$', username):
             flash("Username must only contain letters, numbers, or underscores.")
             return render_template("register.html", form=form)
 
-        # Kết nối cơ sở dữ liệu và kiểm tra email đã tồn tại hay chưa
+        # Kiểm tra email tồn tại
         with getDB() as (cursor, conn):
             cursor.execute("SELECT username FROM \"user\" WHERE emailAddr = %s", (emailAddr,))
             if cursor.fetchone():
                 flash("User already exists")
             else:
-                # Tạo id mới cho người dùng
                 id = str(uuid.uuid4())
-                # Mã hóa mật khẩu
                 hashed_password = generate_password_hash(password)
                 try:
-                    # Thêm người dùng vào bảng
                     cursor.execute("INSERT INTO \"user\" (id, username, emailAddr, password) VALUES (%s, %s, %s, %s)", 
                                    (id, username, emailAddr, hashed_password))
-                    conn.commit()  # Lưu thay đổi vào cơ sở dữ liệu
-                    # Đăng nhập người dùng sau khi đăng ký
+                    conn.commit()
                     session['loggedin'] = True
                     session['id'] = id
                     return redirect('/home')
@@ -113,6 +109,7 @@ def register():
                     flash(f"An error occurred during registration: {e}")
 
     return render_template("register.html", form=form)
+
 
 
 

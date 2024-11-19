@@ -111,8 +111,7 @@ def register():
 
         # Kiểm tra email tồn tại
         try:
-            with getDB() as db:  # Sử dụng context manager để mở kết nối và cursor
-                cursor = db.cursor
+            with getDB() as (cursor, conn):  # Sử dụng context manager để mở kết nối và cursor
                 cursor.execute('SELECT id, password FROM "user" WHERE "emailAddr" = %s', (emailAddr,))
                 if cursor.fetchone():
                     message = "User already exists"
@@ -155,8 +154,7 @@ def login():
 
         try:
             # Sử dụng context manager để tự động quản lý kết nối và cursor
-            with getDB() as db:  # Sử dụng đúng cú pháp context manager
-                cursor = db.cursor
+            with getDB() as (cursor, conn):  # Sử dụng đúng cú pháp context manager
                 cursor.execute('SELECT id, password FROM "user" WHERE "emailAddr" = %s', (emailAddr,))
                 user_info = cursor.fetchone()
 
@@ -188,8 +186,7 @@ def home():
     if 'id' not in session:
         return redirect('/login')
 
-    with getDB() as db:
-        cursor = db.cursor
+    with getDB() as (cursor, conn):
         id = session['id']
         profile_pic, data = None, []
 

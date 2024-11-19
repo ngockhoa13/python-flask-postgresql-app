@@ -47,9 +47,26 @@ def getDB():
     
     # Tạo cursor để thực thi câu lệnh SQL
     cursor = conn.cursor()
-    
-    # Trả về cursor và kết nối để sử dụng trong ứng dụng
-    return cursor, conn
+
+    # Đóng gói trong một lớp để sử dụng với context manager
+    class DBContextManager:
+        def __init__(self, conn, cursor):
+            self.conn = conn
+            self.cursor = cursor
+        
+        def __enter__(self):
+            return self.cursor, self.conn
+        
+        def __exit__(self, exc_type, exc_val, exc_tb):
+            # Đảm bảo đóng kết nối và commit
+            self.cursor.close()
+            if exc_type is None:
+                self.conn.commit()  # Commit transaction if no exception
+            else:
+                self.conn.rollback()  # Rollback if there's an exception
+            self.conn.close()
+
+    return DBContextManager(conn, cursor)
 
 def check_session(f):
     @wraps(f)

@@ -179,38 +179,43 @@ def login():
 
 
 
-# Home route
-@app.route("/")
 @app.route("/home")
+@app.route("/")
 @check_session
 def home():
     with getDB() as (cursor, conn):
         id = session['id']
         profile_pic, data = None, []
+        
+        # Kiểm tra id hợp lệ trước khi truy vấn
+        if not id:
+            return redirect('/login')
 
-        # Corrected the query placeholder to %s
+        # Câu truy vấn với %s
         cursor.execute("SELECT id FROM \"user\" WHERE id = %s", (id,))
-        if id:        
-            count_noti = cursor.execute("SELECT count(*) from notification where myid = %s", (id,)).fetchone()
-            count_noti_chat = cursor.execute("SELECT count(*) from notification where myid = %s and ischat = 1", (id,)).fetchone()
-            
+        user_data = cursor.fetchone()
+        if user_data:        
+            count_noti = cursor.execute("SELECT count(*) from notification where myid = %s", (str(id),)).fetchone()
+            count_noti_chat = cursor.execute("SELECT count(*) from notification where myid = %s and ischat = 1", (str(id),)).fetchone()
+
             blog_info = cursor.execute("SELECT title, content FROM blogPosts WHERE publish = 1 ORDER BY RANDOM() LIMIT 5").fetchall()
             user_info = cursor.execute("SELECT username FROM user WHERE id = %s", (id,)).fetchone()
-            
+
             avatar_path = os.path.join(app.config['UPLOAD_FOLDER'], id, 'avatar.jpg')
             if os.path.exists(avatar_path):
                 profile_pic = id + '/avatar.jpg'
-            if profile_pic is None:
+            else:
                 profile_pic = os.path.join("", "../../img/avatar.jpg")
-            
-            noti_list = cursor.execute("SELECT myid, content, timestamp, from_id, ischat from notification where myid = %s", (id,)).fetchall()
+
+            noti_list = cursor.execute("SELECT myid, content, timestamp, from_id, ischat from notification where myid = %s", (str(id),)).fetchall()
             if noti_list:
                 for noti in noti_list:
                     myid, content, timestamp, fromid, ischat = noti
                     sender_name = cursor.execute("SELECT username from user where id = %s", (fromid,)).fetchone()
                     sender_ava_path = os.path.join(app.config['UPLOAD_FOLDER'], fromid, 'avatar.jpg')
                     sender_pic = fromid + '/avatar.jpg' if os.path.exists(sender_ava_path) else os.path.join("", "../../img/avatar.jpg")
-                    rid = cursor.execute("SELECT id FROM chat WHERE (userID1 = %s AND userID2 = %s) OR (userID1= %s AND userID2 = %s)", (id, fromid, fromid, id)).fetchall()
+                    rid = cursor.execute("SELECT id FROM chat WHERE (userID1 = %s AND userID2 = %s) OR (userID1 = %s AND userID2 = %s)", (id, fromid, fromid, id)).fetchall()
+                    rid = rid[0][0] if rid else None
                     
                     data.append({
                         "myid": myid,
@@ -220,11 +225,12 @@ def home():
                         "time": timestamp,
                         "sender_pic": sender_pic,
                         "ischat": ischat,
-                        "rid": rid if rid else None
+                        "rid": rid
                     })
             
             return render_template('index.html', blog_info=blog_info, user_info=user_info, profile_pic=profile_pic, myid=id, data=data, count_noti=count_noti, count_noti_chat=count_noti_chat)
-    return redirect('/login')
+        return redirect('/login')
+
 
 
 # Profile route

@@ -119,8 +119,9 @@ def register():
                     id = str(uuid.uuid4())
                     hashed_password = generate_password_hash(password)
                     try:
-                        cursor.execute("INSERT INTO \"user\" (id, username, emailAddr, password) VALUES (%s, %s, %s, %s)", 
-                                       (id, username, emailAddr, hashed_password))
+                        # Sửa câu lệnh SQL để đảm bảo rằng tên cột là chính xác
+                        cursor.execute("INSERT INTO \"user\" (id, username, \"emailAddr\", password) VALUES (%s, %s, %s, %s)", 
+                                    (id, username, emailAddr, hashed_password))
                         session['loggedin'] = True
                         session['id'] = id
                         return redirect('/home')

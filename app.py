@@ -189,7 +189,7 @@ def home():
         profile_pic, data = None, []
 
         # Corrected the query placeholder to %s
-        cursor.execute("SELECT id FROM user WHERE id = %s", (id,))
+        cursor.execute("SELECT id FROM \"user\" WHERE id = %s", (id,))
         if id:        
             count_noti = cursor.execute("SELECT count(*) from notification where myid = %s", (id,)).fetchone()
             count_noti_chat = cursor.execute("SELECT count(*) from notification where myid = %s and ischat = 1", (id,)).fetchone()

@@ -88,6 +88,7 @@ class RegisterForm(FlaskForm):
 
 
 # Register route
+# Register route
 @app.route("/register", methods=["GET", "POST"])
 def register():
     form = RegisterForm()
@@ -110,10 +111,7 @@ def register():
 
         # Kiểm tra email tồn tại
         try:
-            # Sử dụng context manager để đảm bảo việc mở và đóng kết nối cơ sở dữ liệu tự động
-            with getDB() as db:
-                cursor, conn = db.__enter__()  # Nhận cursor và conn từ context manager
-
+            with getDB() as (cursor, conn):  # Sử dụng context manager để mở kết nối và cursor
                 cursor.execute('SELECT id, password FROM "user" WHERE "emailAddr" = %s', (emailAddr,))
                 if cursor.fetchone():
                     message = "User already exists"
@@ -123,16 +121,17 @@ def register():
                     try:
                         cursor.execute("INSERT INTO \"user\" (id, username, emailAddr, password) VALUES (%s, %s, %s, %s)", 
                                        (id, username, emailAddr, hashed_password))
-                        conn.commit()
                         session['loggedin'] = True
                         session['id'] = id
                         return redirect('/home')
                     except Exception as e:
                         message = f"An error occurred during registration: {e}"
+
         except Exception as e:
             message = f"Database error: {str(e)}"
 
     return render_template("register.html", form=form, message=message)
+
 
 
 
@@ -155,9 +154,7 @@ def login():
 
         try:
             # Sử dụng context manager để tự động quản lý kết nối và cursor
-            with getDB() as db:
-                cursor, conn = db.__enter__()  # Nhận cursor và conn từ context manager
-
+            with getDB() as (cursor, conn):  # Sử dụng đúng cú pháp context manager
                 # Đảm bảo rằng tên cột trong câu truy vấn chính xác
                 cursor.execute('SELECT id, password FROM "user" WHERE "emailAddr" = %s', (emailAddr,))
                 user_info = cursor.fetchone()
@@ -178,6 +175,7 @@ def login():
             message = f"Error: {str(e)}"
 
     return render_template("login.html", form=form, message=message)
+
 
 
 # Home route

@@ -87,7 +87,7 @@ class RegisterForm(FlaskForm):
     email = EmailField('Email', validators=[DataRequired(), Email()])
 
 
-# Register route
+
 # Register route
 @app.route("/register", methods=["GET", "POST"])
 def register():
@@ -111,7 +111,8 @@ def register():
 
         # Kiểm tra email tồn tại
         try:
-            with getDB() as (cursor, conn):  # Sử dụng context manager để mở kết nối và cursor
+            with getDB() as db:  # Sử dụng context manager để mở kết nối và cursor
+                cursor = db.cursor
                 cursor.execute('SELECT id, password FROM "user" WHERE "emailAddr" = %s', (emailAddr,))
                 if cursor.fetchone():
                     message = "User already exists"
@@ -119,7 +120,6 @@ def register():
                     id = str(uuid.uuid4())
                     hashed_password = generate_password_hash(password)
                     try:
-                        # Sửa câu lệnh SQL để đảm bảo rằng tên cột là chính xác
                         cursor.execute("INSERT INTO \"user\" (id, username, \"emailAddr\", password) VALUES (%s, %s, %s, %s)", 
                                     (id, username, emailAddr, hashed_password))
                         session['loggedin'] = True
@@ -155,8 +155,8 @@ def login():
 
         try:
             # Sử dụng context manager để tự động quản lý kết nối và cursor
-            with getDB() as (cursor, conn):  # Sử dụng đúng cú pháp context manager
-                # Đảm bảo rằng tên cột trong câu truy vấn chính xác
+            with getDB() as db:  # Sử dụng đúng cú pháp context manager
+                cursor = db.cursor
                 cursor.execute('SELECT id, password FROM "user" WHERE "emailAddr" = %s', (emailAddr,))
                 user_info = cursor.fetchone()
 
@@ -184,44 +184,49 @@ def login():
 @app.route("/home")
 @check_session
 def home():
-    cursor, conn = getDB()
-    id = session['id']
-    profile_pic, data = None, []
+    # Kiểm tra id trong session trước khi truy vấn
+    if 'id' not in session:
+        return redirect('/login')
 
-    cursor.execute("SELECT id FROM user WHERE id = ?", (id,)).fetchone()
-    if id:        
-        count_noti = cursor.execute("SELECT count(*) from notification where myid = ?", (id,)).fetchone()
-        count_noti_chat = cursor.execute("SELECT count(*) from notification where myid = ? and ischat = 1", (id,)).fetchone()
-        
-        blog_info = cursor.execute("SELECT title, content FROM blogPosts WHERE publish = 1 ORDER BY RANDOM() LIMIT 5").fetchall()
-        user_info = cursor.execute("SELECT username FROM user WHERE id = ?", (id,)).fetchone()
-        
-        avatar_path = os.path.join(app.config['UPLOAD_FOLDER'], id, 'avatar.jpg')
-        if os.path.exists(avatar_path):
-            profile_pic = id + '/avatar.jpg'
-        if profile_pic is None:
-            profile_pic = os.path.join("", "../../img/avatar.jpg")
-        
-        noti_list = cursor.execute("SELECT myid, content, timestamp, from_id, ischat from notification where myid = ?", (id,)).fetchall()
-        if noti_list:
-            for noti in noti_list:
-                myid, content, timestamp, fromid, ischat = noti
-                sender_name = cursor.execute("SELECT username from user where id = ?", (fromid,)).fetchone()
-                sender_ava_path = os.path.join(app.config['UPLOAD_FOLDER'], fromid, 'avatar.jpg')
-                sender_pic = fromid + '/avatar.jpg' if os.path.exists(sender_ava_path) else os.path.join("", "../../img/avatar.jpg")
-                rid = cursor.execute("SELECT id FROM chat WHERE (userID1 = ? AND userID2 = ?) OR (userID1= ? AND userID2 = ?)", (id, fromid, fromid, id)).fetchall()
-                
-                data.append({
-                    "myid": myid,
-                    "fromid": fromid,
-                    "fromname": sender_name,
-                    "content": content,
-                    "time": timestamp,
-                    "sender_pic": sender_pic,
-                    "ischat": ischat,
-                    "rid": rid if rid else None
-                })
-        
+    with getDB() as db:
+        cursor = db.cursor
+        id = session['id']
+        profile_pic, data = None, []
+
+        cursor.execute("SELECT id FROM user WHERE id = %s", (id,))
+        if id:        
+            count_noti = cursor.execute("SELECT count(*) from notification where myid = %s", (id,)).fetchone()
+            count_noti_chat = cursor.execute("SELECT count(*) from notification where myid = %s and ischat = 1", (id,)).fetchone()
+
+            blog_info = cursor.execute("SELECT title, content FROM blogPosts WHERE publish = 1 ORDER BY RANDOM() LIMIT 5").fetchall()
+            user_info = cursor.execute("SELECT username FROM user WHERE id = %s", (id,)).fetchone()
+
+            avatar_path = os.path.join(app.config['UPLOAD_FOLDER'], id, 'avatar.jpg')
+            if os.path.exists(avatar_path):
+                profile_pic = id + '/avatar.jpg'
+            if profile_pic is None:
+                profile_pic = os.path.join("", "../../img/avatar.jpg")
+
+            noti_list = cursor.execute("SELECT myid, content, timestamp, from_id, ischat from notification where myid = %s", (id,)).fetchall()
+            if noti_list:
+                for noti in noti_list:
+                    myid, content, timestamp, fromid, ischat = noti
+                    sender_name = cursor.execute("SELECT username from user where id = %s", (fromid,)).fetchone()
+                    sender_ava_path = os.path.join(app.config['UPLOAD_FOLDER'], fromid, 'avatar.jpg')
+                    sender_pic = fromid + '/avatar.jpg' if os.path.exists(sender_ava_path) else os.path.join("", "../../img/avatar.jpg")
+                    rid = cursor.execute("SELECT id FROM chat WHERE (userID1 = %s AND userID2 = %s) OR (userID1= %s AND userID2 = %s)", (id, fromid, fromid, id)).fetchall()
+
+                    data.append({
+                        "myid": myid,
+                        "fromid": fromid,
+                        "fromname": sender_name,
+                        "content": content,
+                        "time": timestamp,
+                        "sender_pic": sender_pic,
+                        "ischat": ischat,
+                        "rid": rid if rid else None
+                    })
+
         return render_template('index.html', blog_info=blog_info, user_info=user_info, profile_pic=profile_pic, myid=id, data=data, count_noti=count_noti, count_noti_chat=count_noti_chat)
     return redirect('/login')
 

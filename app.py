@@ -122,11 +122,13 @@ def login():
 
         cursor, conn = getDB()
         try:
-            cursor.execute("SELECT id, password FROM \"user\" WHERE emailAddr = %s", (emailAddr,))
+            # Đảm bảo rằng tên cột trong câu truy vấn chính xác
+            cursor.execute("SELECT id, password FROM \"user\" WHERE emailaddr = %s", (emailAddr,))
             user_info = cursor.fetchone()
 
             if user_info:
                 id, hashed_password = user_info
+                # Kiểm tra mật khẩu
                 if check_password_hash(hashed_password, password):
                     session['loggedin'] = True
                     session['id'] = id
@@ -135,9 +137,13 @@ def login():
                     message = "Wrong Email or Password"
             else:
                 message = "Wrong Email or Password"
+        except Exception as e:
+            # Log lỗi nếu có
+            message = f"Error: {str(e)}"
         finally:
             cursor.close()
             conn.close()
+
     return render_template("login.html", form=form, message=message)
 
 # Home route

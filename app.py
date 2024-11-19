@@ -67,41 +67,42 @@ class RegisterForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired()])
     password = PasswordField('Password', validators=[DataRequired()])
     email = EmailField('Email', validators=[DataRequired(), Email()])
-    csrf_token = None  # CSRF token is automatically handled by Flask-WT
+
 
 # Register route
 @app.route("/register", methods=["GET", "POST"])
 def register():
     form = RegisterForm()
-    message = ""
     
     if form.validate_on_submit():
         emailAddr = form.email.data.strip()
         username = form.username.data.strip()
         password = form.password.data.strip()
-        
-        if len(password) < 6:
-            flash("Password must be at least 6 characters.")
-            return render_template("register.html", form=form, message=message)
 
-        cursor, conn = getDB()
-        cursor.execute("SELECT username FROM \"user\" WHERE emailAddr = %s", (emailAddr,))
-        rows = cursor.fetchall()
+        if not re.fullmatch(r'^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,}$', password):
+            flash("Password must be at least 6 characters, include uppercase, lowercase, numbers, and special characters.")
+            return render_template("register.html", form=form)
 
-        if rows:
-            message = "User already exists"
-        else:
-            id = str(uuid.uuid4())
-            hashed_password = generate_password_hash(password)
-            session['loggedin'] = True
-            session['id'] = id
+        if not re.match(r'^[A-Za-z0-9_]+$', username):
+            flash("Username must only contain letters, numbers, or underscores.")
+            return render_template("register.html", form=form)
 
-            query = "INSERT INTO \"user\" (id, username, emailAddr, password) VALUES (%s, %s, %s, %s)"
-            cursor.execute(query, (id, username, emailAddr, hashed_password))
-            conn.commit()
-            return redirect('/home')
-    
-    return render_template("register.html", form=form, message=message)
+        with getDB() as (cursor, conn):
+            cursor.execute("SELECT username FROM \"user\" WHERE emailAddr = %s", (emailAddr,))
+            if cursor.fetchone():
+                flash("User already exists")
+            else:
+                id = str(uuid.uuid4())
+                hashed_password = generate_password_hash(password)
+                cursor.execute("INSERT INTO \"user\" (id, username, emailAddr, password) VALUES (%s, %s, %s, %s)", 
+                               (id, username, emailAddr, hashed_password))
+                conn.commit()
+                session['loggedin'] = True
+                session['id'] = id
+                return redirect('/home')
+
+    return render_template("register.html", form=form)
+
 
 from werkzeug.security import check_password_hash
 

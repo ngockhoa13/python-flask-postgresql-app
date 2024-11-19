@@ -109,7 +109,7 @@ def register():
 
         # Kiểm tra email tồn tại
         with getDB() as (cursor, conn):
-            cursor.execute("SELECT username FROM \"user\" WHERE emailAddr = %s", (emailAddr,))
+            cursor.execute('SELECT id, password FROM "user" WHERE "emailAddr" = %s', (emailAddr,))
             if cursor.fetchone():
                 flash("User already exists")
             else:

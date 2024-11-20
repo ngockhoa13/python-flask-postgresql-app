@@ -79,7 +79,7 @@ def check_session(f):
     return decorated_function
 
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, FileField, TextAreaField, Form
+from wtforms import StringField, PasswordField, FileField, TextAreaField, Form, EmailField
 from wtforms.validators import DataRequired, Email, Length, Optional
 from wtforms.fields import EmailField
 import re

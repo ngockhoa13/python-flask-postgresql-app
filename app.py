@@ -402,14 +402,13 @@ def settings():
             new_username = form.username.data
             new_email = form.email.data
             new_password = form.password.data
-            new_bio = form.bio.data
             avatar = form.avatar.data
 
-            # Kiểm tra xem có thay đổi gì không
-            if (new_name != name or new_username != username or new_email != emailAddr or new_bio != bio):
+            # Kiểm tra xem có thay đổi gì không và bỏ qua cột 'bio'
+            if (new_name != name or new_username != username or new_email != emailAddr):
                 with getDB() as (cursor, conn):
                     cursor.execute("UPDATE \"user\" SET name = %s, username = %s, \"emailAddr\" = %s WHERE id = %s",
-                                   (new_name, new_username, new_email, new_bio, user_id))
+                                   (new_name, new_username, new_email, user_id))
                     conn.commit()
 
             if new_password:
@@ -441,6 +440,7 @@ def settings():
 
     except Exception as e:
         return f"An error occurred: {str(e)}", 500
+
 
 
 

@@ -8,6 +8,7 @@ from flask_migrate import Migrate
 from flask_wtf.csrf import CSRFProtect
 from werkzeug.security import generate_password_hash
 from functools import wraps
+from middlewares.file_upload import handle_file_upload
 
 app = Flask(__name__, static_folder='static')
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'default-secret-key')

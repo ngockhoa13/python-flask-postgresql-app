@@ -1,6 +1,6 @@
 import os
 import psycopg2
-from uuid import UUID
+import uuid
 from datetime import datetime
 from flask import Flask, redirect, render_template, request, flash, session, url_for, jsonify
 from flask_sqlalchemy import SQLAlchemy
@@ -305,7 +305,7 @@ def profile():
             blog_info = cursor.fetchall()
 
             cursor.execute(
-                "SELECT id, title, authorname, publish FROM \"blogPosts\" WHERE \"userID\" = %s AND publish = 1",
+                "SELECT id, title, authorname, publish FROM \"blogPosts\" WHERE \"userID\" = %s AND publish = TRUE",
                 (user_id,)
             )
             published_blogs = cursor.fetchall()

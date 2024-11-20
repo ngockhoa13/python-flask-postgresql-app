@@ -287,16 +287,16 @@ def profile():
             username = user_info[0]
 
             # Truy vấn dữ liệu liên quan đến blog và thông tin khác
-            blog_count = cursor.execute("SELECT COUNT(*) FROM blogPosts WHERE userID = ?", (id,)).fetchone()[0]
-            blog_info = cursor.execute("SELECT id, title, content, authorname, publish FROM blogPosts WHERE userID = ?", (id,)).fetchall()
-            published_blogs = cursor.execute("SELECT id, title, authorname, publish FROM blogPosts WHERE userID = ? AND publish = 1", (id,)).fetchall()
+            blog_count = cursor.execute("SELECT COUNT(*) FROM \"blogPosts\" WHERE \"userID\" = ?", (id,)).fetchone()[0]
+            blog_info = cursor.execute("SELECT id, title, content, authorname, publish FROM \"blogPosts\" WHERE \"userID\" = ?", (id,)).fetchall()
+            published_blogs = cursor.execute("SELECT id, title, authorname, publish FROM \"blogPosts\" WHERE \"userID\" = ? AND publish = 1", (id,)).fetchall()
 
             # Xử lý blog đã thích
-            liked_blogs_title = cursor.execute("SELECT title FROM likedBlogs WHERE liked = 1 AND userID = ?", (id,)).fetchall()
+            liked_blogs_title = cursor.execute("SELECT title FROM \"likedBlogs\" WHERE liked = 1 AND \"userID\" = ?", (id,)).fetchall()
             total_blog = []
             for title_blog in liked_blogs_title:
                 final_title = title_blog[0]
-                liked_blogs = cursor.execute("SELECT id, title, authorname, publish FROM blogPosts WHERE title = ?", (final_title,)).fetchall()
+                liked_blogs = cursor.execute("SELECT id, title, authorname, publish FROM \"blogPosts\" WHERE title = ?", (final_title,)).fetchall()
                 total_blog += liked_blogs
 
             # Xử lý ảnh đại diện
@@ -358,7 +358,7 @@ def settings():
             # Cập nhật thông tin email
             if 'email' in request.form:
                 new_email = request.form['email']
-                cursor.execute("UPDATE user SET emailAddr = %s WHERE id = %s", (new_email, id))
+                cursor.execute("UPDATE user SET \"emailAddr\" = %s WHERE id = %s", (new_email, id))
                 conn.commit()
                 emailAddr = new_email   
 

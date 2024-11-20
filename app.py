@@ -286,7 +286,7 @@ def profile():
     try:
         with getDB() as (cursor, conn):
             # Kiểm tra người dùng tồn tại
-            cursor.execute("SELECT username FROM \"user\" WHERE id = %s", (user_id,))
+            cursor.execute("SELECT username FROM \"user\" WHERE id = %s", (str(user_id),))
             user_info = cursor.fetchone()
 
             if not user_info:
@@ -295,25 +295,25 @@ def profile():
             username = user_info[0]
 
             # Truy vấn dữ liệu liên quan đến blog và thông tin khác
-            cursor.execute("SELECT COUNT(*) FROM \"blogPosts\" WHERE \"userID\" = %s", (user_id,))
+            cursor.execute("SELECT COUNT(*) FROM \"blogPosts\" WHERE \"userID\" = %s", (str(user_id),))
             blog_count = cursor.fetchone()
 
             cursor.execute(
                 "SELECT id, title, content, authorname, publish FROM \"blogPosts\" WHERE \"userID\" = %s",
-                (user_id,)
+                (str(user_id),)
             )
             blog_info = cursor.fetchall()
 
             cursor.execute(
                 "SELECT id, title, authorname, publish FROM \"blogPosts\" WHERE \"userID\" = %s AND publish = TRUE",
-                (user_id,)
+                (str(user_id),)
             )
             published_blogs = cursor.fetchall()
 
             # Xử lý blog đã thích
             cursor.execute(
                 "SELECT title FROM \"likedBlogs\" WHERE liked = 1 AND \"userID\" = %s",
-                (user_id,)
+                (str(user_id),)
             )
             liked_blogs_title = cursor.fetchall()
 
@@ -354,6 +354,7 @@ def profile():
 
 
 
+
 class SettingsForm(FlaskForm):
     name = StringField('Name', validators=[Optional(), Length(max=80)])  # Tên có thể bỏ qua, tối đa 80 ký tự
     username = StringField('Username', validators=[Optional(), Length(max=80)])  # Username có thể bỏ qua, tối đa 80 ký tự
@@ -370,13 +371,13 @@ def settings():
         return redirect(url_for('login'))
 
     try:
-        # Chuyển đổi user_id thành UUID
-        user_id = UUID(user_id)
+        # Chuyển đổi user_id thành chuỗi
+        user_id = str(user_id)
 
         # Kiểm tra xem id có tồn tại trong database không
         with getDB() as (cursor, conn):
             cursor.execute("SELECT id FROM user WHERE id = %s", (user_id,))
-            if cursor.fetchone() is None:        
+            if cursor.fetchone() is None:
                 return redirect(url_for('login'))  # Redirect nếu id không tồn tại
 
             # Lấy thông tin người dùng
@@ -387,12 +388,11 @@ def settings():
             return "User not found", 404
 
         name, username, emailAddr, hashed_password = user_info
-        print(f"Hashed password: {hashed_password}")
 
         profile_pic = None
 
         # Thư mục upload của người dùng
-        user_upload_folder = os.path.join(app.config['UPLOAD_FOLDER'], str(user_id))
+        user_upload_folder = os.path.join(app.config['UPLOAD_FOLDER'], user_id)
 
         if request.method == "POST":
             # Kiểm tra các trường cập nhật từ người dùng
@@ -412,7 +412,7 @@ def settings():
                 new_email = request.form['email']
                 with getDB() as (cursor, conn):
                     cursor.execute("UPDATE user SET emailAddr = %s WHERE id = %s", (new_email, user_id))
-                emailAddr = new_email   
+                emailAddr = new_email
 
             if 'password' in request.form:
                 new_password = request.form['password']
@@ -420,28 +420,25 @@ def settings():
                     if bcrypt.checkpw(new_password.encode('utf-8'), hashed_password):
                         print('Please provide a password different from your old one!')
                         return redirect(request.url)
-                    else:   
+                    else:
                         new_hashed_password = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt())
                         with getDB() as (cursor, conn):
                             cursor.execute("UPDATE user SET password = %s WHERE id = %s", (new_hashed_password, user_id))
                         hashed_password = new_hashed_password
-                else:
-                    pass
 
             # Quản lý upload file
             result = handle_file_upload(request, user_upload_folder, user_id, name, username, emailAddr, profile_pic)
             if result:
-                return result 
+                return result
 
-        avatar_path = os.path.join(app.config['UPLOAD_FOLDER'], str(user_id), 'avatar.jpg')
-        print(f"Avatar path: {avatar_path}")     
+        avatar_path = os.path.join(app.config['UPLOAD_FOLDER'], user_id, 'avatar.jpg')
         if os.path.exists(avatar_path):
-            profile_pic = os.path.join(str(user_id), 'avatar.jpg')
+            profile_pic = os.path.join(user_id, 'avatar.jpg')
         if profile_pic is None:
             profile_pic = os.path.join("", "../../img/avatar.jpg")
 
         return render_template('settings.html', name=name, username=username, email=emailAddr, profile_pic=profile_pic)
-    
+
     except Exception as e:
         return f"An error occurred: {str(e)}", 500
 

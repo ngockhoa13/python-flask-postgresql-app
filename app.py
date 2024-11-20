@@ -13,6 +13,7 @@ from middlewares.file_upload import handle_file_upload
 app = Flask(__name__, static_folder='static')
 app.config['UPLOAD_FOLDER'] = 'static/users_uploads'
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'default-secret-key')
+app.config['DEBUG'] = True
 csrf = CSRFProtect(app)
 
 # WEBSITE_HOSTNAME exists only in production environment

@@ -204,7 +204,6 @@ def home():
         cursor.execute("SELECT COUNT(*) FROM \"notification\" WHERE myid = %s AND ischat = TRUE", (str(id),))
         count_noti_chat = cursor.fetchone()[0]  # Truy xuất giá trị đầu tiên (COUNT(*)) trong tuple
 
-
         # Lấy danh sách blog
         cursor.execute("SELECT title, content FROM \"blogPosts\" WHERE publish = TRUE ORDER BY RANDOM() LIMIT 5")
         blog_info = cursor.fetchall() or []
@@ -212,26 +211,26 @@ def home():
         # Lấy thông tin người dùng
         cursor.execute("SELECT username FROM \"user\" WHERE id = %s", (id,))
         user_info = cursor.fetchone()
-        user_info = user_info['username'] if user_info else "Unknown"
+        user_info = user_info[0] if user_info else "Unknown"  # Truy cập tên người dùng bằng chỉ số
 
         # Kiểm tra ảnh đại diện
-        avatar_path = os.path.join(app.config['UPLOAD_FOLDER'], id, 'avatar.jpg')
-        profile_pic = id + '/avatar.jpg' if os.path.exists(avatar_path) else "../../img/avatar.jpg"
+        avatar_path = os.path.join(app.config['UPLOAD_FOLDER'], str(id), 'avatar.jpg')
+        profile_pic = str(id) + '/avatar.jpg' if os.path.exists(avatar_path) else "../../img/avatar.jpg"
 
         # Lấy danh sách thông báo
         cursor.execute("SELECT myid, content, timestamp, from_id, ischat FROM \"notification\" WHERE myid = %s", (str(id),))
         noti_list = cursor.fetchall() or []
 
         for noti in noti_list:
-            myid, content, timestamp, fromid, ischat = noti['myid'], noti['content'], noti['timestamp'], noti['from_id'], noti['ischat']
+            myid, content, timestamp, fromid, ischat = noti  # Truy cập tuple trực tiếp
 
             # Lấy thông tin người gửi
             cursor.execute("SELECT username FROM \"user\" WHERE id = %s", (fromid,))
             sender_name = cursor.fetchone()
-            sender_name = sender_name['username'] if sender_name else "Unknown"
+            sender_name = sender_name[0] if sender_name else "Unknown"  # Truy cập tên người gửi từ tuple
 
-            sender_ava_path = os.path.join(app.config['UPLOAD_FOLDER'], fromid, 'avatar.jpg')
-            sender_pic = fromid + '/avatar.jpg' if os.path.exists(sender_ava_path) else "../../img/avatar.jpg"
+            sender_ava_path = os.path.join(app.config['UPLOAD_FOLDER'], str(fromid), 'avatar.jpg')
+            sender_pic = str(fromid) + '/avatar.jpg' if os.path.exists(sender_ava_path) else "../../img/avatar.jpg"
 
             # Lấy room ID (rid) từ bảng chat
             cursor.execute(
@@ -239,7 +238,7 @@ def home():
                 (id, fromid, fromid, id)
             )
             rid = cursor.fetchone()
-            rid = rid['id'] if rid else None
+            rid = rid[0] if rid else None  # Truy cập rid từ tuple
 
             # Thêm thông báo vào danh sách
             data.append({
@@ -264,6 +263,7 @@ def home():
             count_noti=count_noti,
             count_noti_chat=count_noti_chat
         )
+
 
 
 

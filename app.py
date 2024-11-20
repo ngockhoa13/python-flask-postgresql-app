@@ -184,52 +184,87 @@ def login():
 @check_session
 def home():
     with getDB() as (cursor, conn):
-        id = session['id']
+        id = session.get('id')
         profile_pic, data = None, []
         
         # Kiểm tra id hợp lệ trước khi truy vấn
         if not id:
             return redirect('/login')
 
-        # Câu truy vấn với %s
+        # Kiểm tra user có tồn tại hay không
         cursor.execute("SELECT id FROM \"user\" WHERE id = %s", (id,))
         user_data = cursor.fetchone()
-        if user_data:        
-            count_noti = cursor.execute("SELECT count(*) from \"notification\" where myid = %s", (str(id),)).fetchone()
-            count_noti_chat = cursor.execute("SELECT count(*) from \"notification\" where myid = %s and ischat = 1", (str(id),)).fetchone()
+        if not user_data:
+            return redirect('/login')
 
-            blog_info = cursor.execute("SELECT title, content FROM \"blogPosts\" WHERE publish = 1 ORDER BY RANDOM() LIMIT 5").fetchall()
-            user_info = cursor.execute("SELECT username FROM \"user\" WHERE id = %s", (id,)).fetchone()
+        # Truy vấn số lượng thông báo
+        cursor.execute("SELECT count(*) FROM \"notification\" WHERE myid = %s", (str(id),))
+        count_noti = cursor.fetchone()
+        count_noti = count_noti[0] if count_noti else 0
 
-            avatar_path = os.path.join(app.config['UPLOAD_FOLDER'], id, 'avatar.jpg')
-            if os.path.exists(avatar_path):
-                profile_pic = id + '/avatar.jpg'
-            else:
-                profile_pic = os.path.join("", "../../img/avatar.jpg")
+        cursor.execute("SELECT count(*) FROM \"notification\" WHERE myid = %s AND ischat = 1", (str(id),))
+        count_noti_chat = cursor.fetchone()
+        count_noti_chat = count_noti_chat[0] if count_noti_chat else 0
 
-            noti_list = cursor.execute("SELECT myid, content, timestamp, from_id, ischat from \"notification\" where myid = %s", (str(id),)).fetchall()
-            if noti_list:
-                for noti in noti_list:
-                    myid, content, timestamp, fromid, ischat = noti
-                    sender_name = cursor.execute("SELECT username from \"user\" where id = %s", (fromid,)).fetchone()
-                    sender_ava_path = os.path.join(app.config['UPLOAD_FOLDER'], fromid, 'avatar.jpg')
-                    sender_pic = fromid + '/avatar.jpg' if os.path.exists(sender_ava_path) else os.path.join("", "../../img/avatar.jpg")
-                    rid = cursor.execute("SELECT id FROM \"chat\" WHERE (userID1 = %s AND userID2 = %s) OR (userID1 = %s AND userID2 = %s)", (id, fromid, fromid, id)).fetchall()
-                    rid = rid[0][0] if rid else None
-                    
-                    data.append({
-                        "myid": myid,
-                        "fromid": fromid,
-                        "fromname": sender_name,
-                        "content": content,
-                        "time": timestamp,
-                        "sender_pic": sender_pic,
-                        "ischat": ischat,
-                        "rid": rid
-                    })
-            
-            return render_template('index.html', blog_info=blog_info, user_info=user_info, profile_pic=profile_pic, myid=id, data=data, count_noti=count_noti, count_noti_chat=count_noti_chat)
-        return redirect('/login')
+        # Lấy danh sách blog
+        cursor.execute("SELECT title, content FROM \"blogPosts\" WHERE publish = 1 ORDER BY RANDOM() LIMIT 5")
+        blog_info = cursor.fetchall() or []  # Nếu không có bài blog, trả về danh sách rỗng
+
+        # Lấy thông tin người dùng
+        cursor.execute("SELECT username FROM \"user\" WHERE id = %s", (id,))
+        user_info = cursor.fetchone()
+        user_info = user_info[0] if user_info else "Unknown"
+
+        # Kiểm tra ảnh đại diện
+        avatar_path = os.path.join(app.config['UPLOAD_FOLDER'], id, 'avatar.jpg')
+        profile_pic = id + '/avatar.jpg' if os.path.exists(avatar_path) else "../../img/avatar.jpg"
+
+        # Lấy danh sách thông báo
+        cursor.execute("SELECT myid, content, timestamp, from_id, ischat FROM \"notification\" WHERE myid = %s", (str(id),))
+        noti_list = cursor.fetchall() or []  # Nếu không có thông báo, trả về danh sách rỗng
+        
+        for noti in noti_list:
+            myid, content, timestamp, fromid, ischat = noti
+
+            # Lấy thông tin người gửi
+            cursor.execute("SELECT username FROM \"user\" WHERE id = %s", (fromid,))
+            sender_name = cursor.fetchone()
+            sender_name = sender_name[0] if sender_name else "Unknown"
+
+            sender_ava_path = os.path.join(app.config['UPLOAD_FOLDER'], fromid, 'avatar.jpg')
+            sender_pic = fromid + '/avatar.jpg' if os.path.exists(sender_ava_path) else "../../img/avatar.jpg"
+
+            # Lấy room ID (rid) từ bảng chat
+            cursor.execute(
+                "SELECT id FROM \"chat\" WHERE (userID1 = %s AND userID2 = %s) OR (userID1 = %s AND userID2 = %s)",
+                (id, fromid, fromid, id)
+            )
+            rid = cursor.fetchone()
+            rid = rid[0] if rid else None
+
+            # Thêm thông báo vào danh sách
+            data.append({
+                "myid": myid,
+                "fromid": fromid,
+                "fromname": sender_name,
+                "content": content,
+                "time": timestamp,
+                "sender_pic": sender_pic,
+                "ischat": ischat,
+                "rid": rid
+            })
+
+        # Render giao diện với dữ liệu đã xử lý
+        return render_template(
+            'index.html',
+            blog_info=blog_info,
+            user_info=user_info,
+            profile_pic=profile_pic,
+            myid=id,
+            data=data,
+            count_noti=count_noti,
+            count_noti_chat=count_noti_chat
+        )
 
 
 

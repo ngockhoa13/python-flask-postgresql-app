@@ -285,12 +285,12 @@ def profile():
             # Kiểm tra người dùng tồn tại
             user_info = cursor.execute("SELECT username FROM \"user\" WHERE id = %s", (user_id,)).fetchone()
             if not user_info:
-                return redirect('/login')
+                return redirect('/login')  # Chuyển hướng nếu người dùng không tồn tại
 
             username = user_info[0]
 
             # Truy vấn dữ liệu liên quan đến blog và thông tin khác
-            blog_count = cursor.execute("SELECT COUNT(*) FROM \"blogPosts\" WHERE \"userID\" = %s", (user_id,)).fetchone()[0]
+            blog_count = cursor.execute("SELECT COUNT(*) FROM \"blogPosts\" WHERE \"userID\" = %s", (user_id,)).fetchone()
             blog_info = cursor.execute(
                 "SELECT id, title, content, authorname, publish FROM \"blogPosts\" WHERE \"userID\" = %s",
                 (user_id,)

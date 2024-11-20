@@ -376,28 +376,35 @@ def settings():
 
         # Xử lý POST
         if form.validate_on_submit():
-            # Cập nhật các trường thay đổi
-            if form.name.data != name:
-                cursor.execute("UPDATE \"user\" SET name = %s WHERE id = %s", (form.name.data, id))
-            if form.username.data != username:
-                cursor.execute("UPDATE \"user\" SET username = %s WHERE id = %s", (form.username.data, id))
-            if form.email.data != emailAddr:
-                cursor.execute("UPDATE \"user\" SET \"emailAddr\" = %s WHERE id = %s", (form.email.data, id))
-            if form.bio.data != bio:
-                cursor.execute("UPDATE \"user\" SET bio = %s WHERE id = %s", (form.bio.data, id))
-            if form.password.data:
-                new_hashed_password = generate_password_hash(form.password.data)
-                cursor.execute("UPDATE \"user\" SET password = %s WHERE id = %s", (new_hashed_password, id))
+            try:
+                # Cập nhật các trường thay đổi
+                if form.name.data != name:
+                    cursor.execute("UPDATE \"user\" SET name = %s WHERE id = %s", (form.name.data, id))
+                if form.username.data != username:
+                    cursor.execute("UPDATE \"user\" SET username = %s WHERE id = %s", (form.username.data, id))
+                if form.email.data != emailAddr:
+                    cursor.execute("UPDATE \"user\" SET \"emailAddr\" = %s WHERE id = %s", (form.email.data, id))
+                if form.bio.data != bio:
+                    cursor.execute("UPDATE \"user\" SET bio = %s WHERE id = %s", (form.bio.data, id))
+                if form.password.data:
+                    new_hashed_password = generate_password_hash(form.password.data)
+                    cursor.execute("UPDATE \"user\" SET password = %s WHERE id = %s", (new_hashed_password, id))
 
-            # Lưu file avatar
-            if form.avatar.data:
-                avatar_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{id}/avatar.jpg")
-                os.makedirs(os.path.dirname(avatar_path), exist_ok=True)
-                form.avatar.data.save(avatar_path)
+                # Lưu file avatar
+                if form.avatar.data:
+                    avatar_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{id}/avatar.jpg")
+                    os.makedirs(os.path.dirname(avatar_path), exist_ok=True)
+                    form.avatar.data.save(avatar_path)
 
-            conn.commit()
-            flash("Profile updated successfully", "success")
-            return redirect(url_for('settings'))
+                conn.commit()
+                flash("Profile updated successfully", "success")
+                return redirect(url_for('settings'))
+
+            except Exception as error:
+                app.logger.error(f"ERROR in /settings: {error}")
+                app.logger.error(traceback.format_exc())  # Ghi chi tiết lỗi vào log
+                flash("An error occurred while updating your profile. Please try again.", "danger")
+                return redirect(url_for('settings'))
 
         # Kiểm tra avatar
         avatar_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{id}/avatar.jpg")

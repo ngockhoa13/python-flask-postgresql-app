@@ -273,32 +273,50 @@ def home():
 @app.route('/profile')
 @check_session
 def profile():
-    # Sử dụng getDB() như một context manager
-    with getDB() as (cursor, conn):  # cursor và conn sẽ được giải nén từ context manager
-        id = session['id']
-        profile_pic = None
+    id = session.get('id')  # Lấy ID từ session
+    if not id:
+        return redirect('/login')  # Nếu không có ID, chuyển hướng đến trang đăng nhập
 
-        cursor.execute("SELECT id FROM user WHERE id = ?", (id,)).fetchone()
-        if id:   
+    with getDB() as (cursor, conn):
+        try:
+            # Kiểm tra người dùng tồn tại
+            user_info = cursor.execute("SELECT username FROM user WHERE id = ?", (id,)).fetchone()
+            if not user_info:
+                return redirect('/login')
+
+            username = user_info[0]
+
+            # Truy vấn dữ liệu liên quan đến blog và thông tin khác
             blog_count = cursor.execute("SELECT COUNT(*) FROM blogPosts WHERE userID = ?", (id,)).fetchone()[0]
-            username = cursor.execute("SELECT username FROM user WHERE id = ?", (id,)).fetchone()[0]
             blog_info = cursor.execute("SELECT id, title, content, authorname, publish FROM blogPosts WHERE userID = ?", (id,)).fetchall()
-            published_blogs = cursor.execute("SELECT id, title, authorname, publish FROM blogPosts WHERE userID = ? and publish = 1", (id,)).fetchall()
+            published_blogs = cursor.execute("SELECT id, title, authorname, publish FROM blogPosts WHERE userID = ? AND publish = 1", (id,)).fetchall()
 
-            liked_blogs_title = cursor.execute("SELECT title FROM likedBlogs WHERE liked =  1 and userID = ?", (id,)).fetchall()
+            # Xử lý blog đã thích
+            liked_blogs_title = cursor.execute("SELECT title FROM likedBlogs WHERE liked = 1 AND userID = ?", (id,)).fetchall()
             total_blog = []
             for title_blog in liked_blogs_title:
                 final_title = title_blog[0]
                 liked_blogs = cursor.execute("SELECT id, title, authorname, publish FROM blogPosts WHERE title = ?", (final_title,)).fetchall()
                 total_blog += liked_blogs
 
-            avatar_path = os.path.join(app.config['UPLOAD_FOLDER'], id, 'avatar.jpg')
+            # Xử lý ảnh đại diện
+            avatar_path = os.path.join(app.config['UPLOAD_FOLDER'], str(id), 'avatar.jpg')
             if os.path.exists(avatar_path):
-                profile_pic = id + '/avatar.jpg'
-            if profile_pic is None:
-                profile_pic = os.path.join("", "../../img/avatar.jpg")
+                profile_pic = os.path.join(str(id), 'avatar.jpg')
+            else:
+                profile_pic = "../../img/avatar.jpg"
 
-            return render_template('profile.html', username=username, blog_info=blog_info, profile_pic=profile_pic, published_blogs=published_blogs, blog_count=blog_count, liked_blogs=total_blog)
+            # Kết xuất template
+            return render_template('profile.html', 
+                                   username=username, 
+                                   blog_info=blog_info, 
+                                   profile_pic=profile_pic, 
+                                   published_blogs=published_blogs, 
+                                   blog_count=blog_count, 
+                                   liked_blogs=total_blog)
+        except Exception as error:
+            print(f"ERROR: {error}", flush=True)
+            return jsonify({"error": "Internal Server Error"}), 500
 
     return redirect('/login')
 
@@ -308,51 +326,60 @@ def profile():
 def settings():
     id = session.get('id')
 
-    # Sử dụng getDB() với context manager
-    with getDB() as (cursor, conn):  # unpack cursor và conn từ context manager
-        cursor.execute("SELECT id FROM user WHERE id = ?", (id,)).fetchone()
-        
-        if not id:        
-            return redirect(url_for('login'))
+    if not id:        
+        return redirect(url_for('login'))
 
-        user_info = cursor.execute("SELECT name, username, emailAddr, password FROM user WHERE id = ?", (id,)).fetchone()
+    # Sử dụng getDB() với context manager
+    with getDB() as (cursor, conn):  # Unpack cursor và conn từ context manager
+        # Truy vấn thông tin người dùng
+        cursor.execute("SELECT name, username, emailAddr, password FROM user WHERE id = %s", (id,))
+        user_info = cursor.fetchone()
+        if not user_info:
+            return jsonify({"error": "User not found"}), 404
+
         name, username, emailAddr, hashed_password = user_info
         profile_pic = None
 
         if request.method == "POST":
+            # Cập nhật thông tin name
             if 'name' in request.form:
                 new_name = request.form['name']
-                cursor.execute("UPDATE user SET name = ? WHERE id = ?", (new_name, id))
+                cursor.execute("UPDATE user SET name = %s WHERE id = %s", (new_name, id))
                 conn.commit()
                 name = new_name
 
+            # Cập nhật thông tin username
             if 'username' in request.form:
                 new_username = request.form['username']
-                cursor.execute("UPDATE user SET username = ? WHERE id = ?", (new_username, id))
+                cursor.execute("UPDATE user SET username = %s WHERE id = %s", (new_username, id))
                 conn.commit()
                 username = new_username
 
+            # Cập nhật thông tin email
             if 'email' in request.form:
                 new_email = request.form['email']
-                cursor.execute("UPDATE user SET emailAddr = ? WHERE id = ?", (new_email, id))
+                cursor.execute("UPDATE user SET emailAddr = %s WHERE id = %s", (new_email, id))
                 conn.commit()
                 emailAddr = new_email   
 
+            # Cập nhật mật khẩu
             if 'password' in request.form:
                 new_password = request.form['password']
                 if new_password and not check_password_hash(hashed_password, new_password):
                     new_hashed_password = generate_password_hash(new_password)
-                    cursor.execute("UPDATE user SET password = ? WHERE id = ?", (new_hashed_password, id))
+                    cursor.execute("UPDATE user SET password = %s WHERE id = %s", (new_hashed_password, id))
                     conn.commit()
+                    hashed_password = new_hashed_password
 
         # Xử lý ảnh đại diện
-        avatar_path = os.path.join(app.config['UPLOAD_FOLDER'], id, 'avatar.jpg')
+        avatar_path = os.path.join(app.config['UPLOAD_FOLDER'], str(id), 'avatar.jpg')
         if os.path.exists(avatar_path):
-            profile_pic = id + '/avatar.jpg'
+            profile_pic = f"{id}/avatar.jpg"
         if profile_pic is None:
-            profile_pic = os.path.join("", "../../img/avatar.jpg")
+            profile_pic = "../../img/avatar.jpg"
 
     return render_template('settings.html', name=name, username=username, email=emailAddr, profile_pic=profile_pic)
+
 
 # Logout route
 @app.route('/logout')
@@ -367,19 +394,23 @@ def logout():
 def save_blog():
     id = session.get('id')
 
-    # Sử dụng getDB() với context manager
-    with getDB() as (cursor, conn):  # unpack cursor và conn từ context manager
-        # Kiểm tra xem id có tồn tại trong cơ sở dữ liệu không
-        cursor.execute("SELECT id FROM user WHERE id = ?", (id,)).fetchone()
-        if not id:        
-            return redirect(url_for('login'))
+    if not id:        
+        return redirect(url_for('login'))
 
+    # Sử dụng getDB() với context manager
+    with getDB() as (cursor, conn):
         # Lấy thông tin người dùng từ cơ sở dữ liệu
-        user_info = cursor.execute("SELECT id, username FROM user WHERE id = ?", (id,)).fetchone()
+        user_info = cursor.execute("SELECT id, username FROM user WHERE id = %s", (id,)).fetchone()
+        if not user_info:
+            return redirect(url_for('login'))  # Người dùng không tồn tại
+
         username = user_info[1]
 
         if request.method == "POST":
             try:
+                if not request.json:
+                    return "Invalid or missing JSON payload", 400
+
                 blogTitle = request.json.get('blogTitle')
                 blogContent = request.json.get('blogContent')
 
@@ -394,7 +425,7 @@ def save_blog():
                 else:
                     return "Missing blog title or content", 400
             except Exception as error:
-                print(f"ERROR: {error}", flush=True)
+                app.logger.error(f"ERROR in /save_blog: {error}")
                 return "Server error occurred", 500
     return None
 
@@ -570,6 +601,92 @@ def new_chat():
         print(f"ERROR: {error}", flush=True)
         return "Internal Server Error", 500
 
+@app.route('/chat/', methods=["GET", "POST"])
+@check_session
+def allChat():
+    id = session.get('id')
+
+    # Kiểm tra id có tồn tại trong cơ sở dữ liệu không
+    with getDB() as (cursor, conn):
+        cursor.execute("SELECT id FROM user WHERE id = %s", (id,))
+        if not cursor.fetchone():        
+            return redirect(url_for('login'))  # Redirect đến trang login nếu người dùng không tồn tại
+
+        try:
+            # Lấy room_id từ query string
+            room_id = request.args.get("rid", None)
+            count_noti_chat = cursor.execute("SELECT count(*) from notification where myid= %s and ischat = 1", (id,)).fetchone()
+
+            # Truy vấn tất cả các phòng chat mà người dùng tham gia
+            chat_list = cursor.execute("SELECT id, userID1, userID2 FROM chat WHERE userID1 = %s OR userID2 = %s", (id, id)).fetchall()
+            count_noti = cursor.execute("SELECT count(*) from notification where myid= %s", (id,)).fetchone()
+
+            data = []
+            messages = []
+
+            # Lấy thông tin người dùng
+            queryname = cursor.execute("SELECT id, username from user where id = %s", (id,)).fetchone()
+            myid, ownname = queryname
+
+            des_id = None
+            if chat_list:
+                if room_id: 
+                    get_desit = cursor.execute("SELECT userID1, userID2 FROM chat WHERE id = %s", (room_id,)).fetchall()
+                    if get_desit: 
+                        id1, id2 = get_desit[0]
+                        des_id = id1 if id1 != id else id2
+
+                for chat in chat_list:
+                    chat_roomID, userID1, userID2 = chat
+                    try:
+                        # Lấy tất cả các tin nhắn trong phòng chat
+                        messages_th = cursor.execute("SELECT id, content, timestamp, sender_id, sender_username, room_id FROM chat_messages WHERE room_id = %s", (chat_roomID,)).fetchall()
+
+                        # Lấy tin nhắn mới nhất trong phòng chat
+                        latest_message = cursor.execute("SELECT id, content, timestamp, sender_id, sender_username, room_id FROM chat_messages WHERE room_id = %s ORDER BY timestamp DESC LIMIT 1", (chat_roomID,)).fetchone()
+
+                        if userID1 == id:
+                            friend = cursor.execute("SELECT username from user where id = %s", (userID2,)).fetchone()
+                        else:
+                            friend = cursor.execute("SELECT username from user where id = %s", (userID1,)).fetchone()
+                        
+                        if room_id == chat_roomID:
+                            for message in messages_th:
+                                var1, var2, var3, var4, var5, var6 = message
+                                messages.append({
+                                    "content": var2,
+                                    "timestamp": var3,
+                                    "sender_username": var5,
+                                })
+
+                    except (AttributeError, IndexError):
+                        latest_message = "This place is empty. No messages ..." 
+
+                    data.append({
+                        "username": friend[0] if friend else "Unknown",
+                        "room_id": chat_roomID,
+                        "last_message": latest_message,
+                    })
+
+            messages = messages if room_id else []
+
+            profile_pic = None
+            avatar_path = os.path.join(app.config['UPLOAD_FOLDER'], str(id))
+            avatar_path_full = avatar_path + '/avatar.jpg'
+
+            if os.path.exists(avatar_path_full):
+                profile_pic = f'{id}/avatar.jpg'
+            if not profile_pic:
+                profile_pic = os.path.join("", "../../img/avatar.jpg")
+
+            if not chat_list:
+                return render_template('chatbox-code.html', room_id=room_id, data=data, messages=messages, ownname=ownname, myid=myid, profile_pic=profile_pic, count_noti=count_noti, des_id=des_id, count_noti_chat=count_noti_chat)
+            else:
+                return render_template('chatbox-code.html', room_id=room_id, data=data, messages=messages, ownname=ownname, myid=myid, profile_pic=profile_pic, count_noti=count_noti, des_id=des_id, count_noti_chat=count_noti_chat)
+
+        except Exception as error:
+            print(f"ERROR: {error}", flush=True)
+            return "Internal Server Error", 500
 
 
 @app.route('/deletenoti', methods=["POST"])

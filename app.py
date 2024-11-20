@@ -79,8 +79,8 @@ def check_session(f):
     return decorated_function
 
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, EmailField
-from wtforms.validators import DataRequired, Email
+from wtforms import StringField, PasswordField, FileField, TextAreaField
+from wtforms.validators import DataRequired, Email, Length, Optional
 import re
 
 class RegisterForm(FlaskForm):
@@ -338,64 +338,71 @@ def profile():
     return redirect('/login')
 
 
+class SettingsForm(FlaskForm):
+    name = StringField('Name', validators=[Optional(), Length(max=80)])
+    username = StringField('Username', validators=[Optional(), Length(max=80)])
+    email = StringField('Email', validators=[Optional(), Email(), Length(max=80)])
+    password = PasswordField('Password', validators=[Optional(), Length(min=8, max=80)])
+    bio = TextAreaField('Bio', validators=[Optional(), Length(max=160)])
+    avatar = FileField('Avatar')
+
 @app.route('/settings', methods=["GET", "POST"])
 @check_session
 def settings():
     id = session.get('id')
-
-    if not id:        
+    if not id:
         return redirect(url_for('login'))
 
-    # Sử dụng getDB() với context manager
-    with getDB() as (cursor, conn):  # Unpack cursor và conn từ context manager
-        # Truy vấn thông tin người dùng
-        cursor.execute('SELECT name, username, \"emailAddr\", password FROM \"user\" WHERE id = %s', (id,))
+    form = SettingsForm()
+
+    # Kết nối DB
+    with getDB() as (cursor, conn):
+        cursor.execute('SELECT name, username, \"emailAddr\", password, bio FROM \"user\" WHERE id = %s', (id,))
         user_info = cursor.fetchone()
         if not user_info:
             return jsonify({"error": "User not found"}), 404
 
-        name, username, emailAddr, hashed_password = user_info
-        profile_pic = None
+        # Lấy thông tin từ DB
+        name, username, emailAddr, hashed_password, bio = user_info
 
-        if request.method == "POST":
-            # Cập nhật thông tin name
-            if 'name' in request.form:
-                new_name = request.form['name']
-                cursor.execute("UPDATE user SET name = %s WHERE id = %s", (new_name, id))
-                conn.commit()
-                name = new_name
+        # Xử lý GET
+        if request.method == "GET":
+            form.name.data = name
+            form.username.data = username
+            form.email.data = emailAddr
+            form.bio.data = bio
 
-            # Cập nhật thông tin username
-            if 'username' in request.form:
-                new_username = request.form['username']
-                cursor.execute("UPDATE user SET username = %s WHERE id = %s", (new_username, id))
-                conn.commit()
-                username = new_username
+        # Xử lý POST
+        if form.validate_on_submit():
+            # Cập nhật các trường thay đổi
+            if form.name.data != name:
+                cursor.execute("UPDATE \"user\" SET name = %s WHERE id = %s", (form.name.data, id))
+            if form.username.data != username:
+                cursor.execute("UPDATE \"user\" SET username = %s WHERE id = %s", (form.username.data, id))
+            if form.email.data != emailAddr:
+                cursor.execute("UPDATE \"user\" SET \"emailAddr\" = %s WHERE id = %s", (form.email.data, id))
+            if form.bio.data != bio:
+                cursor.execute("UPDATE \"user\" SET bio = %s WHERE id = %s", (form.bio.data, id))
+            if form.password.data:
+                new_hashed_password = generate_password_hash(form.password.data)
+                cursor.execute("UPDATE \"user\" SET password = %s WHERE id = %s", (new_hashed_password, id))
 
-            # Cập nhật thông tin email
-            if 'email' in request.form:
-                new_email = request.form['email']
-                cursor.execute("UPDATE user SET \"emailAddr\" = %s WHERE id = %s", (new_email, id))
-                conn.commit()
-                emailAddr = new_email   
+            # Lưu file avatar
+            if form.avatar.data:
+                avatar_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{id}/avatar.jpg")
+                os.makedirs(os.path.dirname(avatar_path), exist_ok=True)
+                form.avatar.data.save(avatar_path)
 
-            # Cập nhật mật khẩu
-            if 'password' in request.form:
-                new_password = request.form['password']
-                if new_password and not check_password_hash(hashed_password, new_password):
-                    new_hashed_password = generate_password_hash(new_password)
-                    cursor.execute("UPDATE user SET password = %s WHERE id = %s", (new_hashed_password, id))
-                    conn.commit()
-                    hashed_password = new_hashed_password
+            conn.commit()
+            flash("Profile updated successfully", "success")
+            return redirect(url_for('settings'))
 
-        # Xử lý ảnh đại diện
-        avatar_path = os.path.join(app.config['UPLOAD_FOLDER'], str(id), 'avatar.jpg')
-        if os.path.exists(avatar_path):
-            profile_pic = f"{id}/avatar.jpg"
-        if profile_pic is None:
-            profile_pic = "../../img/avatar.jpg"
+        # Kiểm tra avatar
+        avatar_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{id}/avatar.jpg")
+        profile_pic = f"{id}/avatar.jpg" if os.path.exists(avatar_path) else "../../img/avatar.jpg"
 
-    return render_template('settings.html', name=name, username=username, email=emailAddr, profile_pic=profile_pic)
+    return render_template('settings.html', form=form, profile_pic=profile_pic)
+
 
 
 # Logout route

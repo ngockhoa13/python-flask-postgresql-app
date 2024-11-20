@@ -312,7 +312,7 @@ def profile():
 
             # Xử lý blog đã thích
             cursor.execute(
-                "SELECT title FROM \"likedBlogs\" WHERE liked = 1 AND \"userID\" = %s",
+                "SELECT title FROM \"likedBlogs\" WHERE liked = TRUE AND \"userID\" = %s",
                 (str(user_id),)
             )
             liked_blogs_title = cursor.fetchall()
@@ -376,12 +376,12 @@ def settings():
 
         # Kiểm tra xem id có tồn tại trong database không
         with getDB() as (cursor, conn):
-            cursor.execute("SELECT id FROM user WHERE id = %s", (user_id,))
+            cursor.execute("SELECT id FROM \"user\" WHERE id = %s", (user_id,))
             if cursor.fetchone() is None:
                 return redirect(url_for('login'))  # Redirect nếu id không tồn tại
 
             # Lấy thông tin người dùng
-            cursor.execute("SELECT name, username, emailAddr, password FROM user WHERE id = %s", (user_id,))
+            cursor.execute("SELECT name, username, \"emailAddr\", password FROM \"user\" WHERE id = %s", (user_id,))
             user_info = cursor.fetchone()
 
         if user_info is None:
@@ -399,19 +399,19 @@ def settings():
             if 'name' in request.form:
                 new_name = request.form['name']
                 with getDB() as (cursor, conn):
-                    cursor.execute("UPDATE user SET name = %s WHERE id = %s", (new_name, user_id))
+                    cursor.execute("UPDATE \"user\" SET name = %s WHERE id = %s", (new_name, user_id))
                 name = new_name
 
             if 'username' in request.form:
                 new_username = request.form['username']
                 with getDB() as (cursor, conn):
-                    cursor.execute("UPDATE user SET username = %s WHERE id = %s", (new_username, user_id))
+                    cursor.execute("UPDATE \"user\" SET username = %s WHERE id = %s", (new_username, user_id))
                 username = new_username
 
             if 'email' in request.form:
                 new_email = request.form['email']
                 with getDB() as (cursor, conn):
-                    cursor.execute("UPDATE user SET emailAddr = %s WHERE id = %s", (new_email, user_id))
+                    cursor.execute("UPDATE \"user\" SET \"emailAddr\" = %s WHERE id = %s", (new_email, user_id))
                 emailAddr = new_email
 
             if 'password' in request.form:
@@ -423,7 +423,7 @@ def settings():
                     else:
                         new_hashed_password = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt())
                         with getDB() as (cursor, conn):
-                            cursor.execute("UPDATE user SET password = %s WHERE id = %s", (new_hashed_password, user_id))
+                            cursor.execute("UPDATE \"user\" SET password = %s WHERE id = %s", (new_hashed_password, user_id))
                         hashed_password = new_hashed_password
 
             # Quản lý upload file

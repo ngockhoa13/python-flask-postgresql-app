@@ -9,6 +9,7 @@ from flask_wtf.csrf import CSRFProtect
 from werkzeug.security import generate_password_hash
 from functools import wraps
 from middlewares.file_upload import handle_file_upload
+import traceback
 
 app = Flask(__name__, static_folder='static')
 app.config['UPLOAD_FOLDER'] = 'static/users_uploads'
@@ -272,6 +273,8 @@ def home():
 
 
 
+
+
 @app.route('/profile')
 @check_session
 def profile():
@@ -305,14 +308,12 @@ def profile():
                 "SELECT title FROM \"likedBlogs\" WHERE liked = 1 AND \"userID\" = %s",
                 (user_id,)
             ).fetchall()
-            total_blog = []
-            for title_blog in liked_blogs_title:
-                final_title = title_blog[0]
-                liked_blogs = cursor.execute(
-                    "SELECT id, title, authorname, publish FROM \"blogPosts\" WHERE title = %s",
-                    (final_title,)
-                ).fetchall()
-                total_blog += liked_blogs
+
+            liked_blogs_titles = [title_blog[0] for title_blog in liked_blogs_title]
+            total_blog = cursor.execute(
+                "SELECT id, title, authorname, publish FROM \"blogPosts\" WHERE title IN %s",
+                (tuple(liked_blogs_titles),)
+            ).fetchall()
 
             # Xử lý ảnh đại diện
             upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
@@ -333,12 +334,13 @@ def profile():
                 liked_blogs=total_blog
             )
     except Exception as error:
-        # Sử dụng Flask logger để ghi lỗi vào log stream trên Azure
+        # Ghi chi tiết lỗi vào log
         app.logger.error(f"ERROR: {error}")
         app.logger.error(traceback.format_exc())  # Ghi chi tiết lỗi vào log
         return jsonify({"error": "Internal Server Error"}), 500
 
     return redirect('/login')
+
 
 
 
@@ -358,94 +360,77 @@ def settings():
         return redirect(url_for('login'))
 
     try:
+        # Kiểm tra xem id có tồn tại trong database không
         with getDB() as (cursor, conn):
-            cursor.execute('SELECT name, username, "emailAddr", password, bio FROM "user" WHERE id = %s', (user_id,))
+            cursor.execute("SELECT id FROM user WHERE id = %s", (user_id,))
+            if cursor.fetchone() is None:        
+                return redirect(url_for('login'))  # Redirect nếu id không tồn tại
+
+            # Lấy thông tin người dùng
+            cursor.execute("SELECT name, username, emailAddr, password FROM user WHERE id = %s", (user_id,))
             user_info = cursor.fetchone()
-            if not user_info:
-                return jsonify({"error": "User not found"}), 404
 
-            name, username, emailAddr, hashed_password, bio = user_info
+        if user_info is None:
+            return "User not found", 404
 
-            # Xử lý GET
-            if request.method == "GET":
-                return render_template(
-                    'settings.html',
-                    name=name,
-                    username=username,
-                    email=emailAddr,
-                    bio=bio,
-                )
+        name, username, emailAddr, hashed_password = user_info
+        print(hashed_password)
 
-            # Xử lý POST
-            if request.method == "POST":
-                new_name = request.form.get('name', name)
-                new_username = request.form.get('username', username)
-                new_email = request.form.get('email', emailAddr)
-                new_bio = request.form.get('bio', bio)
-                new_password = request.form.get('password', None)
+        profile_pic = None
 
-                # Kiểm tra lỗi đầu vào
-                name_error, username_error, email_error, password_error, bio_error, avatar_error = None, None, None, None, None, None
-                if not new_name:
-                    name_error = "Name is required"
-                if not new_username:
-                    username_error = "Username is required"
-                if not new_email:
-                    email_error = "Email is required"
-                if new_password and len(new_password) < 6:
-                    password_error = "Password must be at least 6 characters"
-                if len(new_bio) > 200:
-                    bio_error = "Bio is too long"
-                if 'avatar' in request.files:
-                    avatar_file = request.files['avatar']
-                    if avatar_file and avatar_file.filename == '':
-                        avatar_error = "Avatar file is required"
+        # Thư mục upload của người dùng
+        user_upload_folder = os.path.join(app.config['UPLOAD_FOLDER'], str(user_id))
 
-                # Nếu có lỗi, render lại trang với thông báo lỗi
-                if name_error or username_error or email_error or password_error or bio_error or avatar_error:
-                    return render_template(
-                        'settings.html',
-                        name=new_name,
-                        username=new_username,
-                        email=new_email,
-                        bio=new_bio,
-                        name_error=name_error,
-                        username_error=username_error,
-                        email_error=email_error,
-                        password_error=password_error,
-                        bio_error=bio_error,
-                        avatar_error=avatar_error
-                    )
+        if request.method == "POST":
+            # Kiểm tra các trường cập nhật từ người dùng
+            if 'name' in request.form:
+                new_name = request.form['name']
+                with getDB() as (cursor, conn):
+                    cursor.execute("UPDATE user SET name = %s WHERE id = %s", (new_name, user_id))
+                name = new_name
 
-                # Cập nhật dữ liệu nếu không có lỗi
-                if new_name != name:
-                    cursor.execute("UPDATE \"user\" SET name = %s WHERE id = %s", (new_name, user_id))
-                if new_username != username:
-                    cursor.execute("UPDATE \"user\" SET username = %s WHERE id = %s", (new_username, user_id))
-                if new_email != emailAddr:
-                    cursor.execute("UPDATE \"user\" SET \"emailAddr\" = %s WHERE id = %s", (new_email, user_id))
-                if new_bio != bio:
-                    cursor.execute("UPDATE \"user\" SET bio = %s WHERE id = %s", (new_bio, user_id))
+            if 'username' in request.form:
+                new_username = request.form['username']
+                with getDB() as (cursor, conn):
+                    cursor.execute("UPDATE user SET username = %s WHERE id = %s", (new_username, user_id))
+                username = new_username
+
+            if 'email' in request.form:
+                new_email = request.form['email']
+                with getDB() as (cursor, conn):
+                    cursor.execute("UPDATE user SET emailAddr = %s WHERE id = %s", (new_email, user_id))
+                emailAddr = new_email   
+
+            if 'password' in request.form:
+                new_password = request.form['password']
                 if new_password:
-                    new_hashed_password = generate_password_hash(new_password)
-                    cursor.execute("UPDATE \"user\" SET password = %s WHERE id = %s", (new_hashed_password, user_id))
+                    if bcrypt.checkpw(new_password.encode('utf-8'), hashed_password):
+                        print('Please provide a password different from your old one!')
+                        return redirect(request.url)
+                    else:   
+                        new_hashed_password = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt())
+                        with getDB() as (cursor, conn):
+                            cursor.execute("UPDATE user SET password = %s WHERE id = %s", (new_hashed_password, user_id))
+                        hashed_password = new_hashed_password
+                else:
+                    pass
 
-                # Cập nhật avatar nếu có
-                if 'avatar' in request.files:
-                    avatar_file = request.files['avatar']
-                    avatar_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{user_id}/avatar.jpg")
-                    os.makedirs(os.path.dirname(avatar_path), exist_ok=True)
-                    avatar_file.save(avatar_path)
+            # Quản lý upload file
+            result = handle_file_upload(request, user_upload_folder, user_id, name, username, emailAddr, profile_pic)
+            if result:
+                return result 
 
-                conn.commit()
-                flash("Profile updated successfully", "success")
-                return redirect(url_for('settings'))
+        avatar_path = os.path.join(app.config['UPLOAD_FOLDER'], str(user_id), 'avatar.jpg')
+        print(avatar_path)     
+        if os.path.exists(avatar_path):
+            profile_pic = os.path.join(str(user_id), 'avatar.jpg')
+        if profile_pic is None:
+            profile_pic = os.path.join("", "../../img/avatar.jpg")
 
-    except Exception as error:
-        app.logger.error(f"ERROR in /settings: {error}")
-        return jsonify({"error": "Internal Server Error"}), 500
-
-    return render_template('settings.html')
+        return render_template('settings.html', name=name, username=username, email=emailAddr, profile_pic=profile_pic)
+    
+    except Exception as e:
+        return f"An error occurred: {str(e)}", 500
 
 
 

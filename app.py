@@ -341,12 +341,12 @@ def profile():
 
 
 class SettingsForm(FlaskForm):
-    name = StringField('Name', validators=[Optional(), Length(max=80)])
-    username = StringField('Username', validators=[Optional(), Length(max=80)])
-    email = StringField('Email', validators=[Optional(), Email(), Length(max=80)])
-    password = PasswordField('Password', validators=[Optional(), Length(min=8, max=80)])
-    bio = TextAreaField('Bio', validators=[Optional(), Length(max=160)])
-    avatar = FileField('Avatar')
+    name = StringField('Name', validators=[Optional(), Length(max=80)])  # Tên có thể bỏ qua, tối đa 80 ký tự
+    username = StringField('Username', validators=[Optional(), Length(max=80)])  # Username có thể bỏ qua, tối đa 80 ký tự
+    email = StringField('Email', validators=[Optional(), Email(), Length(max=80)])  # Email có thể bỏ qua, kiểm tra đúng định dạng email và tối đa 80 ký tự
+    password = PasswordField('Password', validators=[Optional(), Length(min=8, max=80)])  # Mật khẩu có thể bỏ qua, tối thiểu 8 ký tự và tối đa 80 ký tự
+    bio = TextAreaField('Bio', validators=[Optional(), Length(max=160)])  # Bio có thể bỏ qua, tối đa 160 ký tự
+    avatar = FileField('Avatar')  # Avatar có thể bỏ qua
 
 @app.route('/settings', methods=["GET", "POST"])
 @check_session

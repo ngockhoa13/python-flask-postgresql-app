@@ -294,35 +294,41 @@ def profile():
 
             username = user_info[0]
 
-            # Truy vấn dữ liệu liên quan đến blog và thông tin khác
+            # Truy vấn số lượng blog
             cursor.execute("SELECT COUNT(*) FROM \"blogPosts\" WHERE \"userID\" = %s", (str(user_id),))
-            blog_count = cursor.fetchone()
+            blog_count = cursor.fetchone()[0]
 
+            # Lấy thông tin tất cả blog
             cursor.execute(
                 "SELECT id, title, content, authorname, publish FROM \"blogPosts\" WHERE \"userID\" = %s",
                 (str(user_id),)
             )
             blog_info = cursor.fetchall()
 
+            # Lấy thông tin các blog đã xuất bản
             cursor.execute(
                 "SELECT id, title, authorname, publish FROM \"blogPosts\" WHERE \"userID\" = %s AND publish = TRUE",
                 (str(user_id),)
             )
             published_blogs = cursor.fetchall()
 
-            # Xử lý blog đã thích
+            # Lấy tiêu đề blog đã thích
             cursor.execute(
                 "SELECT title FROM \"likedBlogs\" WHERE liked = TRUE AND \"userID\" = %s",
                 (str(user_id),)
             )
             liked_blogs_title = cursor.fetchall()
 
-            liked_blogs_titles = [title_blog[0] for title_blog in liked_blogs_title]
-            cursor.execute(
-                "SELECT id, title, authorname, publish FROM \"blogPosts\" WHERE title IN %s",
-                (tuple(liked_blogs_titles),)
-            )
-            total_blog = cursor.fetchall()
+            # Kiểm tra danh sách blog đã thích
+            if liked_blogs_title:
+                liked_blogs_titles = [title_blog[0] for title_blog in liked_blogs_title]
+                cursor.execute(
+                    "SELECT id, title, authorname, publish FROM \"blogPosts\" WHERE title IN %s",
+                    (tuple(liked_blogs_titles),)
+                )
+                total_blog = cursor.fetchall()
+            else:
+                total_blog = []  # Không có blog nào được thích
 
             # Xử lý ảnh đại diện
             upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
@@ -353,6 +359,7 @@ def profile():
 
 
 
+from werkzeug.utils import secure_filename
 
 
 class SettingsForm(FlaskForm):
@@ -390,54 +397,53 @@ def settings():
         name, username, emailAddr, hashed_password = user_info
 
         profile_pic = None
-
-        # Thư mục upload của người dùng
         user_upload_folder = os.path.join(app.config['UPLOAD_FOLDER'], user_id)
 
-        if request.method == "POST":
-            # Kiểm tra các trường cập nhật từ người dùng
-            if 'name' in request.form:
-                new_name = request.form['name']
-                with getDB() as (cursor, conn):
-                    cursor.execute("UPDATE \"user\" SET name = %s WHERE id = %s", (new_name, user_id))
-                name = new_name
+        form = SettingsForm(name=name, username=username, email=emailAddr)  # Khởi tạo form với dữ liệu hiện tại
 
-            if 'username' in request.form:
-                new_username = request.form['username']
-                with getDB() as (cursor, conn):
-                    cursor.execute("UPDATE \"user\" SET username = %s WHERE id = %s", (new_username, user_id))
-                username = new_username
+        if form.validate_on_submit():  # Kiểm tra form có hợp lệ khi POST không
+            # Lấy dữ liệu từ form
+            new_name = form.name.data
+            new_username = form.username.data
+            new_email = form.email.data
+            new_password = form.password.data
+            new_bio = form.bio.data
+            avatar = form.avatar.data
 
-            if 'email' in request.form:
-                new_email = request.form['email']
-                with getDB() as (cursor, conn):
-                    cursor.execute("UPDATE \"user\" SET \"emailAddr\" = %s WHERE id = %s", (new_email, user_id))
-                emailAddr = new_email
+            # Cập nhật thông tin người dùng
+            with getDB() as (cursor, conn):
+                cursor.execute("UPDATE \"user\" SET name = %s, username = %s, \"emailAddr\" = %s, bio = %s WHERE id = %s",
+                               (new_name, new_username, new_email, new_bio, user_id))
+                conn.commit()
 
-            if 'password' in request.form:
-                new_password = request.form['password']
-                if new_password:
-                    if bcrypt.checkpw(new_password.encode('utf-8'), hashed_password):
-                        print('Please provide a password different from your old one!')
-                        return redirect(request.url)
-                    else:
-                        new_hashed_password = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt())
-                        with getDB() as (cursor, conn):
-                            cursor.execute("UPDATE \"user\" SET password = %s WHERE id = %s", (new_hashed_password, user_id))
-                        hashed_password = new_hashed_password
+            if new_password:
+                # Nếu có mật khẩu mới, kiểm tra và cập nhật
+                if bcrypt.checkpw(new_password.encode('utf-8'), hashed_password):
+                    flash("Please provide a password different from your old one!", "warning")
+                else:
+                    new_hashed_password = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt())
+                    with getDB() as (cursor, conn):
+                        cursor.execute("UPDATE \"user\" SET password = %s WHERE id = %s", (new_hashed_password, user_id))
+                    hashed_password = new_hashed_password
 
-            # Quản lý upload file
-            result = handle_file_upload(request, user_upload_folder, user_id, name, username, emailAddr, profile_pic)
-            if result:
-                return result
+            # Xử lý upload avatar
+            if avatar:
+                avatar_filename = secure_filename(avatar.filename)
+                avatar_path = os.path.join(user_upload_folder, 'avatar.jpg')
+                avatar.save(avatar_path)
 
+            # Hiển thị thông báo thành công
+            flash("Settings updated successfully", "success")
+            return redirect(url_for('settings'))  # Redirect lại đến trang settings
+
+        # Nếu là GET request hoặc form không hợp lệ, render lại trang settings
         avatar_path = os.path.join(app.config['UPLOAD_FOLDER'], user_id, 'avatar.jpg')
         if os.path.exists(avatar_path):
             profile_pic = os.path.join(user_id, 'avatar.jpg')
         if profile_pic is None:
             profile_pic = os.path.join("", "../../img/avatar.jpg")
 
-        return render_template('settings.html', name=name, username=username, email=emailAddr, profile_pic=profile_pic)
+        return render_template('settings.html', form=form, profile_pic=profile_pic)
 
     except Exception as e:
         return f"An error occurred: {str(e)}", 500

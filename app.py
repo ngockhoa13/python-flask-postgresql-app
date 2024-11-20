@@ -358,7 +358,7 @@ def settings():
 
     # Kết nối DB
     with getDB() as (cursor, conn):
-        cursor.execute('SELECT name, username, "emailAddr", password, bio FROM "user" WHERE id = %s', (id,))
+        cursor.execute('SELECT name, username, \"emailAddr\", password, bio FROM \"user\" WHERE id = %s', (id,))
         user_info = cursor.fetchone()
         if not user_info:
             flash("User not found", "danger")

@@ -332,8 +332,9 @@ def profile():
                 liked_blogs=total_blog
             )
     except Exception as error:
-        print(f"ERROR: {error}")
-        print(traceback.format_exc())  # In chi tiết lỗi
+        # Sử dụng Flask logger để ghi lỗi vào log stream trên Azure
+        app.logger.error(f"ERROR: {error}")
+        app.logger.error(traceback.format_exc())  # Ghi chi tiết lỗi vào log
         return jsonify({"error": "Internal Server Error"}), 500
 
     return redirect('/login')

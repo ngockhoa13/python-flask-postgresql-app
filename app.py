@@ -1,6 +1,6 @@
 import os
 import psycopg2
-import uuid
+from uuid import UUID
 from datetime import datetime
 from flask import Flask, redirect, render_template, request, flash, session, url_for, jsonify
 from flask_sqlalchemy import SQLAlchemy
@@ -286,34 +286,43 @@ def profile():
     try:
         with getDB() as (cursor, conn):
             # Kiểm tra người dùng tồn tại
-            user_info = cursor.execute("SELECT username FROM \"user\" WHERE id = %s", (user_id,)).fetchone()
+            cursor.execute("SELECT username FROM \"user\" WHERE id = %s", (user_id,))
+            user_info = cursor.fetchone()
+
             if not user_info:
                 return redirect('/login')  # Chuyển hướng nếu người dùng không tồn tại
 
             username = user_info[0]
 
             # Truy vấn dữ liệu liên quan đến blog và thông tin khác
-            blog_count = cursor.execute("SELECT COUNT(*) FROM \"blogPosts\" WHERE \"userID\" = %s", (user_id,)).fetchone()
-            blog_info = cursor.execute(
+            cursor.execute("SELECT COUNT(*) FROM \"blogPosts\" WHERE \"userID\" = %s", (user_id,))
+            blog_count = cursor.fetchone()
+
+            cursor.execute(
                 "SELECT id, title, content, authorname, publish FROM \"blogPosts\" WHERE \"userID\" = %s",
                 (user_id,)
-            ).fetchall()
-            published_blogs = cursor.execute(
+            )
+            blog_info = cursor.fetchall()
+
+            cursor.execute(
                 "SELECT id, title, authorname, publish FROM \"blogPosts\" WHERE \"userID\" = %s AND publish = 1",
                 (user_id,)
-            ).fetchall()
+            )
+            published_blogs = cursor.fetchall()
 
             # Xử lý blog đã thích
-            liked_blogs_title = cursor.execute(
+            cursor.execute(
                 "SELECT title FROM \"likedBlogs\" WHERE liked = 1 AND \"userID\" = %s",
                 (user_id,)
-            ).fetchall()
+            )
+            liked_blogs_title = cursor.fetchall()
 
             liked_blogs_titles = [title_blog[0] for title_blog in liked_blogs_title]
-            total_blog = cursor.execute(
+            cursor.execute(
                 "SELECT id, title, authorname, publish FROM \"blogPosts\" WHERE title IN %s",
                 (tuple(liked_blogs_titles),)
-            ).fetchall()
+            )
+            total_blog = cursor.fetchall()
 
             # Xử lý ảnh đại diện
             upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
@@ -344,6 +353,7 @@ def profile():
 
 
 
+
 class SettingsForm(FlaskForm):
     name = StringField('Name', validators=[Optional(), Length(max=80)])  # Tên có thể bỏ qua, tối đa 80 ký tự
     username = StringField('Username', validators=[Optional(), Length(max=80)])  # Username có thể bỏ qua, tối đa 80 ký tự
@@ -360,6 +370,9 @@ def settings():
         return redirect(url_for('login'))
 
     try:
+        # Chuyển đổi user_id thành UUID
+        user_id = UUID(user_id)
+
         # Kiểm tra xem id có tồn tại trong database không
         with getDB() as (cursor, conn):
             cursor.execute("SELECT id FROM user WHERE id = %s", (user_id,))
@@ -374,7 +387,7 @@ def settings():
             return "User not found", 404
 
         name, username, emailAddr, hashed_password = user_info
-        print(hashed_password)
+        print(f"Hashed password: {hashed_password}")
 
         profile_pic = None
 
@@ -421,7 +434,7 @@ def settings():
                 return result 
 
         avatar_path = os.path.join(app.config['UPLOAD_FOLDER'], str(user_id), 'avatar.jpg')
-        print(avatar_path)     
+        print(f"Avatar path: {avatar_path}")     
         if os.path.exists(avatar_path):
             profile_pic = os.path.join(str(user_id), 'avatar.jpg')
         if profile_pic is None:

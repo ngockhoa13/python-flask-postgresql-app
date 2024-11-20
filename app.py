@@ -11,6 +11,7 @@ from functools import wraps
 from middlewares.file_upload import handle_file_upload
 
 app = Flask(__name__, static_folder='static')
+app.config['UPLOAD_FOLDER'] = 'static/users_uploads'
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'default-secret-key')
 csrf = CSRFProtect(app)
 
@@ -180,68 +181,62 @@ def login():
 
 
 
+
 @app.route("/home")
 @app.route("/")
-@check_session
 def home():
-    with getDB() as (cursor, conn):
-        id = session.get('id')
-        profile_pic, data = None, []
+    cursor, conn = getDB()
+    if not cursor:
+        flash("Database connection failed")
+        return redirect('/login')
 
-        # Kiểm tra ID hợp lệ
-        if not id:
-            return redirect('/login')
+    id = session.get('id')
+    profile_pic, data = None, []
 
-        # Kiểm tra user có tồn tại
+    if not id:
+        return redirect('/login')
+
+    try:
         cursor.execute("SELECT id FROM \"user\" WHERE id = %s", (id,))
         user_data = cursor.fetchone()
         if not user_data:
             return redirect('/login')
 
-        # Truy vấn số lượng thông báo
         cursor.execute("SELECT COUNT(*) FROM \"notification\" WHERE myid = %s", (str(id),))
-        count_noti = cursor.fetchone()[0]  # Truy xuất giá trị đầu tiên (COUNT(*)) trong tuple
+        count_noti = cursor.fetchone()[0]
 
         cursor.execute("SELECT COUNT(*) FROM \"notification\" WHERE myid = %s AND ischat = TRUE", (str(id),))
-        count_noti_chat = cursor.fetchone()[0]  # Truy xuất giá trị đầu tiên (COUNT(*)) trong tuple
+        count_noti_chat = cursor.fetchone()[0]
 
-        # Lấy danh sách blog
         cursor.execute("SELECT title, content FROM \"blogPosts\" WHERE publish = TRUE ORDER BY RANDOM() LIMIT 5")
         blog_info = cursor.fetchall() or []
 
-        # Lấy thông tin người dùng
         cursor.execute("SELECT username FROM \"user\" WHERE id = %s", (id,))
         user_info = cursor.fetchone()
-        user_info = user_info[0] if user_info else "Unknown"  # Truy cập tên người dùng bằng chỉ số
+        user_info = user_info[0] if user_info else "Unknown"
 
-        # Kiểm tra ảnh đại diện
         avatar_path = os.path.join(app.config['UPLOAD_FOLDER'], str(id), 'avatar.jpg')
         profile_pic = str(id) + '/avatar.jpg' if os.path.exists(avatar_path) else "../../img/avatar.jpg"
 
-        # Lấy danh sách thông báo
         cursor.execute("SELECT myid, content, timestamp, from_id, ischat FROM \"notification\" WHERE myid = %s", (str(id),))
         noti_list = cursor.fetchall() or []
 
         for noti in noti_list:
-            myid, content, timestamp, fromid, ischat = noti  # Truy cập tuple trực tiếp
-
-            # Lấy thông tin người gửi
+            myid, content, timestamp, fromid, ischat = noti
             cursor.execute("SELECT username FROM \"user\" WHERE id = %s", (fromid,))
             sender_name = cursor.fetchone()
-            sender_name = sender_name[0] if sender_name else "Unknown"  # Truy cập tên người gửi từ tuple
+            sender_name = sender_name[0] if sender_name else "Unknown"
 
             sender_ava_path = os.path.join(app.config['UPLOAD_FOLDER'], str(fromid), 'avatar.jpg')
             sender_pic = str(fromid) + '/avatar.jpg' if os.path.exists(sender_ava_path) else "../../img/avatar.jpg"
 
-            # Lấy room ID (rid) từ bảng chat
             cursor.execute(
                 "SELECT id FROM \"chat\" WHERE (userID1 = %s AND userID2 = %s) OR (userID1 = %s AND userID2 = %s)",
                 (id, fromid, fromid, id)
             )
             rid = cursor.fetchone()
-            rid = rid[0] if rid else None  # Truy cập rid từ tuple
+            rid = rid[0] if rid else None
 
-            # Thêm thông báo vào danh sách
             data.append({
                 "myid": myid,
                 "fromid": fromid,
@@ -253,7 +248,6 @@ def home():
                 "rid": rid
             })
 
-        # Render giao diện với dữ liệu đã xử lý
         return render_template(
             'index.html',
             blog_info=blog_info,
@@ -264,6 +258,12 @@ def home():
             count_noti=count_noti,
             count_noti_chat=count_noti_chat
         )
+    except Exception as e:
+        flash(f"An error occurred: {e}")
+        return redirect('/login')
+    finally:
+        cursor.close()
+        conn.close()
 
 
 

@@ -285,7 +285,6 @@ def profile():
             # Kiểm tra người dùng tồn tại
             user_info = cursor.execute("SELECT username FROM \"user\" WHERE id = %s", (user_id,)).fetchone()
             if not user_info:
-                flash("User not found. Please login again.", "danger")
                 return redirect('/login')  # Chuyển hướng nếu người dùng không tồn tại
 
             username = user_info[0]
@@ -334,8 +333,12 @@ def profile():
                 liked_blogs=total_blog
             )
     except Exception as error:
-        flash(f"An error occurred while fetching profile data. Please try again. Error: {error}", "danger")
-        return redirect(url_for('profile'))  # Quay lại trang profile khi có lỗi xảy ra
+        # Sử dụng Flask logger để ghi lỗi vào log stream trên Azure
+        app.logger.error(f"ERROR: {error}")
+        app.logger.error(traceback.format_exc())  # Ghi chi tiết lỗi vào log
+        return jsonify({"error": "Internal Server Error"}), 500
+
+    return redirect('/login')
 
 
 
@@ -350,66 +353,99 @@ class SettingsForm(FlaskForm):
 @app.route('/settings', methods=["GET", "POST"])
 @check_session
 def settings():
-    id = session.get('id')
-    if not id:
+    user_id = session.get('id')
+    if not user_id:
         return redirect(url_for('login'))
 
-    form = SettingsForm()
+    try:
+        with getDB() as (cursor, conn):
+            cursor.execute('SELECT name, username, "emailAddr", password, bio FROM "user" WHERE id = %s', (user_id,))
+            user_info = cursor.fetchone()
+            if not user_info:
+                return jsonify({"error": "User not found"}), 404
 
-    # Kết nối DB
-    with getDB() as (cursor, conn):
-        cursor.execute('SELECT name, username, \"emailAddr\", password, bio FROM \"user\" WHERE id = %s', (id,))
-        user_info = cursor.fetchone()
-        if not user_info:
-            flash("User not found", "danger")
-            return redirect(url_for('login'))  # Nếu không tìm thấy người dùng, chuyển hướng về trang đăng nhập
+            name, username, emailAddr, hashed_password, bio = user_info
 
-        # Lấy thông tin từ DB
-        name, username, emailAddr, hashed_password, bio = user_info
+            # Xử lý GET
+            if request.method == "GET":
+                return render_template(
+                    'settings.html',
+                    name=name,
+                    username=username,
+                    email=emailAddr,
+                    bio=bio,
+                )
 
-        # Xử lý GET
-        if request.method == "GET":
-            form.name.data = name
-            form.username.data = username
-            form.email.data = emailAddr
-            form.bio.data = bio
+            # Xử lý POST
+            if request.method == "POST":
+                new_name = request.form.get('name', name)
+                new_username = request.form.get('username', username)
+                new_email = request.form.get('email', emailAddr)
+                new_bio = request.form.get('bio', bio)
+                new_password = request.form.get('password', None)
 
-        # Xử lý POST
-        if form.validate_on_submit():
-            try:
-                # Cập nhật các trường thay đổi
-                if form.name.data != name:
-                    cursor.execute("UPDATE \"user\" SET name = %s WHERE id = %s", (form.name.data, id))
-                if form.username.data != username:
-                    cursor.execute("UPDATE \"user\" SET username = %s WHERE id = %s", (form.username.data, id))
-                if form.email.data != emailAddr:
-                    cursor.execute("UPDATE \"user\" SET \"emailAddr\" = %s WHERE id = %s", (form.email.data, id))
-                if form.bio.data != bio:
-                    cursor.execute("UPDATE \"user\" SET bio = %s WHERE id = %s", (form.bio.data, id))
-                if form.password.data:
-                    new_hashed_password = generate_password_hash(form.password.data)
-                    cursor.execute("UPDATE \"user\" SET password = %s WHERE id = %s", (new_hashed_password, id))
+                # Kiểm tra lỗi đầu vào
+                name_error, username_error, email_error, password_error, bio_error, avatar_error = None, None, None, None, None, None
+                if not new_name:
+                    name_error = "Name is required"
+                if not new_username:
+                    username_error = "Username is required"
+                if not new_email:
+                    email_error = "Email is required"
+                if new_password and len(new_password) < 6:
+                    password_error = "Password must be at least 6 characters"
+                if len(new_bio) > 200:
+                    bio_error = "Bio is too long"
+                if 'avatar' in request.files:
+                    avatar_file = request.files['avatar']
+                    if avatar_file and avatar_file.filename == '':
+                        avatar_error = "Avatar file is required"
 
-                # Lưu file avatar
-                if form.avatar.data:
-                    avatar_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{id}/avatar.jpg")
+                # Nếu có lỗi, render lại trang với thông báo lỗi
+                if name_error or username_error or email_error or password_error or bio_error or avatar_error:
+                    return render_template(
+                        'settings.html',
+                        name=new_name,
+                        username=new_username,
+                        email=new_email,
+                        bio=new_bio,
+                        name_error=name_error,
+                        username_error=username_error,
+                        email_error=email_error,
+                        password_error=password_error,
+                        bio_error=bio_error,
+                        avatar_error=avatar_error
+                    )
+
+                # Cập nhật dữ liệu nếu không có lỗi
+                if new_name != name:
+                    cursor.execute("UPDATE \"user\" SET name = %s WHERE id = %s", (new_name, user_id))
+                if new_username != username:
+                    cursor.execute("UPDATE \"user\" SET username = %s WHERE id = %s", (new_username, user_id))
+                if new_email != emailAddr:
+                    cursor.execute("UPDATE \"user\" SET \"emailAddr\" = %s WHERE id = %s", (new_email, user_id))
+                if new_bio != bio:
+                    cursor.execute("UPDATE \"user\" SET bio = %s WHERE id = %s", (new_bio, user_id))
+                if new_password:
+                    new_hashed_password = generate_password_hash(new_password)
+                    cursor.execute("UPDATE \"user\" SET password = %s WHERE id = %s", (new_hashed_password, user_id))
+
+                # Cập nhật avatar nếu có
+                if 'avatar' in request.files:
+                    avatar_file = request.files['avatar']
+                    avatar_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{user_id}/avatar.jpg")
                     os.makedirs(os.path.dirname(avatar_path), exist_ok=True)
-                    form.avatar.data.save(avatar_path)
+                    avatar_file.save(avatar_path)
 
                 conn.commit()
                 flash("Profile updated successfully", "success")
                 return redirect(url_for('settings'))
 
-            except Exception as error:
-                flash(f"An error occurred while updating your profile. Please try again. Error: {error}", "danger")
-                return redirect(url_for('settings'))  # Trả lại trang settings nếu có lỗi
+    except Exception as error:
+        app.logger.error(f"ERROR in /settings: {error}")
+        return jsonify({"error": "Internal Server Error"}), 500
 
-    # Lấy ảnh đại diện nếu có
-    upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
-    avatar_path = os.path.join(upload_folder, f"{id}/avatar.jpg")
-    profile_pic = avatar_path if os.path.exists(avatar_path) else "../../img/avatar.jpg"
-
-    return render_template('settings.html', form=form, profile_pic=profile_pic)
+    return render_template('settings.html')
 
 
 

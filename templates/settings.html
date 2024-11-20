@@ -36,53 +36,51 @@
             <section class="setting-container">
                 <div class="setting-mode">General</div>
                 <form method="POST" action="/settings" enctype="multipart/form-data">
-                    {{ form.hidden_tag() }}
-                
                     <div class="account-edit-entry">
-                        {{ form.name(class="account-edit-entry__input", placeholder="Your full name") }}
+                        <input type="text" name="name" class="account-edit-entry__input" placeholder="Your full name" value="{{ name }}">
                         <div class="account-edit-entry__label">Name</div>
-                        {% if form.name.errors %}
-                            <div class="error-message">{{ form.name.errors[0] }}</div>
+                        {% if name_error %}
+                            <div class="error-message">{{ name_error }}</div>
                         {% endif %}
                     </div>
                 
                     <div class="account-edit-entry">
-                        {{ form.username(class="account-edit-entry__input", placeholder="Your username") }}
+                        <input type="text" name="username" class="account-edit-entry__input" placeholder="Your username" value="{{ username }}">
                         <div class="account-edit-entry__label">Username</div>
-                        {% if form.username.errors %}
-                            <div class="error-message">{{ form.username.errors[0] }}</div>
+                        {% if username_error %}
+                            <div class="error-message">{{ username_error }}</div>
                         {% endif %}
                     </div>
                 
                     <div class="account-edit-entry">
-                        {{ form.email(class="account-edit-entry__input", placeholder="Your email") }}
+                        <input type="email" name="email" class="account-edit-entry__input" placeholder="Your email" value="{{ email }}">
                         <div class="account-edit-entry__label">Email</div>
-                        {% if form.email.errors %}
-                            <div class="error-message">{{ form.email.errors[0] }}</div>
+                        {% if email_error %}
+                            <div class="error-message">{{ email_error }}</div>
                         {% endif %}
                     </div>
                 
                     <div class="account-edit-entry">
-                        {{ form.password(class="account-edit-entry__input", placeholder="New password") }}
+                        <input type="password" name="password" class="account-edit-entry__input" placeholder="New password">
                         <div class="account-edit-entry__label">Password</div>
-                        {% if form.password.errors %}
-                            <div class="error-message">{{ form.password.errors[0] }}</div>
+                        {% if password_error %}
+                            <div class="error-message">{{ password_error }}</div>
                         {% endif %}
                     </div>
                 
                     <div class="account-edit-entry">
-                        {{ form.bio(class="account-edit-entry__input", placeholder="Tell about yourself...") }}
+                        <textarea name="bio" class="account-edit-entry__input" placeholder="Tell about yourself...">{{ bio }}</textarea>
                         <div class="account-edit-entry__label">Bio</div>
-                        {% if form.bio.errors %}
-                            <div class="error-message">{{ form.bio.errors[0] }}</div>
+                        {% if bio_error %}
+                            <div class="error-message">{{ bio_error }}</div>
                         {% endif %}
                     </div>
                 
                     <div class="account-edit-entry">
-                        {{ form.avatar(class="account-edit-entry__input") }}
+                        <input type="file" name="avatar" class="account-edit-entry__input">
                         <div class="account-edit-entry__label">Upload Avatar</div>
-                        {% if form.avatar.errors %}
-                            <div class="error-message">{{ form.avatar.errors[0] }}</div>
+                        {% if avatar_error %}
+                            <div class="error-message">{{ avatar_error }}</div>
                         {% endif %}
                     </div>
                 

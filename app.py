@@ -202,7 +202,7 @@ def home():
         count_noti = cursor.fetchone()
         count_noti = count_noti[0] if count_noti else 0
 
-        cursor.execute("SELECT count(*) FROM \"notification\" WHERE myid = %s AND ischat = 1", (str(id),))
+        cursor.execute("SELECT count(*) FROM \"notification\" WHERE myid = %s AND ischat = TRUE", (str(id),))
         count_noti_chat = cursor.fetchone()
         count_noti_chat = count_noti_chat[0] if count_noti_chat else 0
 

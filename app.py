@@ -238,7 +238,7 @@ def home():
 
             # Lấy room ID (rid) từ bảng chat
             cursor.execute(
-                "SELECT id FROM \"chat\" WHERE (userID1 = %s AND userID2 = %s) OR (userID1 = %s AND userID2 = %s)",
+                "SELECT id FROM \"chat\" WHERE (\"userID1\" = %s AND \"userID2\" = %s) OR (\"userID1\" = %s AND \"userID2\" = %s)",
                 (id, fromid, fromid, id)
             )
             rid = cursor.fetchone()
@@ -407,9 +407,6 @@ def settings():
                 flash("An error occurred while updating your profile. Please try again.", "danger")
                 return redirect(url_for('settings'))
 
-        # Kiểm tra avatar
-        avatar_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{id}/avatar.jpg")
-        profile_pic = f"{id}/avatar.jpg" if os.path.exists(avatar_path) else "../../img/avatar.jpg"
 
     return render_template('settings.html', form=form, profile_pic=profile_pic)
 
@@ -443,7 +440,7 @@ def save_blog():
 
         if request.method == "POST":
             try:
-                if not request.json:
+                if not request.is_json:
                     app.logger.error("Invalid or missing JSON payload")
                     return "Invalid or missing JSON payload", 400
 
@@ -468,6 +465,7 @@ def save_blog():
                 app.logger.error(traceback.format_exc())  # Ghi chi tiết lỗi vào log
                 return jsonify({"error": "Server error occurred", "message": str(error)}), 500
     return None
+
 
 
 

@@ -363,12 +363,12 @@ from werkzeug.utils import secure_filename
 
 
 class SettingsForm(FlaskForm):
-    name = StringField('Name', validators=[Optional(), Length(max=80)])  # Tên có thể bỏ qua, tối đa 80 ký tự
-    username = StringField('Username', validators=[Optional(), Length(max=80)])  # Username có thể bỏ qua, tối đa 80 ký tự
-    email = StringField('Email', validators=[Optional(), Email(), Length(max=80)])  # Email có thể bỏ qua, kiểm tra đúng định dạng email và tối đa 80 ký tự
-    password = PasswordField('Password', validators=[Optional(), Length(min=8, max=80)])  # Mật khẩu có thể bỏ qua, tối thiểu 8 ký tự và tối đa 80 ký tự
-    bio = TextAreaField('Bio', validators=[Optional(), Length(max=160)])  # Bio có thể bỏ qua, tối đa 160 ký tự
-    avatar = FileField('Avatar')  # Avatar có thể bỏ qua
+    name = StringField('Name', validators=[Optional(), Length(max=80)])
+    username = StringField('Username', validators=[Optional(), Length(max=80)])
+    email = StringField('Email', validators=[Optional(), Email(), Length(max=80)])
+    password = PasswordField('Password', validators=[Optional(), Length(min=8, max=80)])
+    bio = TextAreaField('Bio', validators=[Optional(), Length(max=160)])
+    avatar = FileField('Avatar')
 
 @app.route('/settings', methods=["GET", "POST"])
 @check_session
@@ -378,16 +378,13 @@ def settings():
         return redirect(url_for('login'))
 
     try:
-        # Chuyển đổi user_id thành chuỗi
         user_id = str(user_id)
 
-        # Kiểm tra xem id có tồn tại trong database không
         with getDB() as (cursor, conn):
             cursor.execute("SELECT id FROM \"user\" WHERE id = %s", (user_id,))
             if cursor.fetchone() is None:
-                return redirect(url_for('login'))  # Redirect nếu id không tồn tại
+                return redirect(url_for('login'))
 
-            # Lấy thông tin người dùng
             cursor.execute("SELECT name, username, \"emailAddr\", password FROM \"user\" WHERE id = %s", (user_id,))
             user_info = cursor.fetchone()
 
@@ -395,14 +392,12 @@ def settings():
             return "User not found", 404
 
         name, username, emailAddr, hashed_password = user_info
-
         profile_pic = None
         user_upload_folder = os.path.join(app.config['UPLOAD_FOLDER'], user_id)
 
-        form = SettingsForm(name=name, username=username, email=emailAddr)  # Khởi tạo form với dữ liệu hiện tại
+        form = SettingsForm(name=name, username=username, email=emailAddr)
 
-        if form.validate_on_submit():  # Kiểm tra form có hợp lệ khi POST không
-            # Lấy dữ liệu từ form
+        if form.validate_on_submit():
             new_name = form.name.data
             new_username = form.username.data
             new_email = form.email.data
@@ -410,14 +405,14 @@ def settings():
             new_bio = form.bio.data
             avatar = form.avatar.data
 
-            # Cập nhật thông tin người dùng
-            with getDB() as (cursor, conn):
-                cursor.execute("UPDATE \"user\" SET name = %s, username = %s, \"emailAddr\" = %s, bio = %s WHERE id = %s",
-                               (new_name, new_username, new_email, new_bio, user_id))
-                conn.commit()
+            # Kiểm tra xem có thay đổi gì không
+            if (new_name != name or new_username != username or new_email != emailAddr or new_bio != bio):
+                with getDB() as (cursor, conn):
+                    cursor.execute("UPDATE \"user\" SET name = %s, username = %s, \"emailAddr\" = %s, bio = %s WHERE id = %s",
+                                   (new_name, new_username, new_email, new_bio, user_id))
+                    conn.commit()
 
             if new_password:
-                # Nếu có mật khẩu mới, kiểm tra và cập nhật
                 if bcrypt.checkpw(new_password.encode('utf-8'), hashed_password):
                     flash("Please provide a password different from your old one!", "warning")
                 else:
@@ -426,17 +421,16 @@ def settings():
                         cursor.execute("UPDATE \"user\" SET password = %s WHERE id = %s", (new_hashed_password, user_id))
                     hashed_password = new_hashed_password
 
-            # Xử lý upload avatar
             if avatar:
+                if not os.path.exists(user_upload_folder):
+                    os.makedirs(user_upload_folder)  # Tạo thư mục nếu không có
                 avatar_filename = secure_filename(avatar.filename)
-                avatar_path = os.path.join(user_upload_folder, 'avatar.jpg')
+                avatar_path = os.path.join(user_upload_folder, avatar_filename)
                 avatar.save(avatar_path)
 
-            # Hiển thị thông báo thành công
             flash("Settings updated successfully", "success")
-            return redirect(url_for('settings'))  # Redirect lại đến trang settings
+            return redirect(url_for('settings'))
 
-        # Nếu là GET request hoặc form không hợp lệ, render lại trang settings
         avatar_path = os.path.join(app.config['UPLOAD_FOLDER'], user_id, 'avatar.jpg')
         if os.path.exists(avatar_path):
             profile_pic = os.path.join(user_id, 'avatar.jpg')

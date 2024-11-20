@@ -36,6 +36,8 @@
             <section class="setting-container">
                 <div class="setting-mode">General</div>
                 <form method="POST" action="/settings" enctype="multipart/form-data">
+                    {{ form.hidden_tag() }}  <!-- Thêm CSRF token vào form -->
+                
                     <div class="account-edit-entry">
                         <input type="text" name="name" class="account-edit-entry__input" placeholder="Your full name" value="{{ name }}">
                         <div class="account-edit-entry__label">Name</div>
@@ -89,7 +91,7 @@
                             <div class="btn-osu">Save Changes</div>
                         </button>
                     </div>
-                </form>                                
+                </form>                                               
             </section>
         </main>
     </div>

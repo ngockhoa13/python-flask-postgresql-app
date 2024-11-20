@@ -332,7 +332,7 @@ def settings():
     # Sử dụng getDB() với context manager
     with getDB() as (cursor, conn):  # Unpack cursor và conn từ context manager
         # Truy vấn thông tin người dùng
-        cursor.execute('SELECT "name", "username", "emailAddr", "password" FROM "user" WHERE id = %s', (id,))
+        cursor.execute('SELECT name, username, \"emailAddr\", password FROM \"user\" WHERE id = %s', (id,))
         user_info = cursor.fetchone()
         if not user_info:
             return jsonify({"error": "User not found"}), 404
@@ -400,7 +400,7 @@ def save_blog():
     # Sử dụng getDB() với context manager
     with getDB() as (cursor, conn):
         # Lấy thông tin người dùng từ cơ sở dữ liệu
-        user_info = cursor.execute("SELECT id, username FROM "user" WHERE id = %s", (id,)).fetchone()
+        user_info = cursor.execute("SELECT id, username FROM \"user\" WHERE id = %s", (id,)).fetchone()
         if not user_info:
             return redirect(url_for('login'))  # Người dùng không tồn tại
 
@@ -439,7 +439,7 @@ def delete_blog():
     # Sử dụng getDB() với context manager
     with getDB() as (cursor, conn):  # unpack cursor và conn từ context manager
         # Kiểm tra id người dùng
-        cursor.execute("SELECT id FROM "user" WHERE id = ?", (id,)).fetchone()
+        cursor.execute("SELECT id FROM \"user\" WHERE id = ?", (id,)).fetchone()
         if not id:        
             return redirect(url_for('login'))
 
@@ -448,7 +448,7 @@ def delete_blog():
 
             if blog_id:
                 # Xóa blog khỏi cơ sở dữ liệu
-                cursor.execute("DELETE FROM "blogPosts" WHERE id = ?", (blog_id,))
+                cursor.execute("DELETE FROM \"blogPosts\" WHERE id = ?", (blog_id,))
                 conn.commit()
 
             return redirect(url_for('profile'))
@@ -466,7 +466,7 @@ def published():
     # Sử dụng context manager để lấy cursor và connection
     with getDB() as (cursor, conn):  # unpack cursor và conn từ context manager
         # Kiểm tra xem id có tồn tại trong cơ sở dữ liệu không
-        cursor.execute("SELECT id FROM "user" WHERE id = ?", (id,)).fetchone()
+        cursor.execute("SELECT id FROM \"user\" WHERE id = ?", (id,)).fetchone()
         if not id:        
             return redirect(url_for('login'))
 
@@ -476,7 +476,7 @@ def published():
 
             if blogID is not None and published_status is not None:
                 # Cập nhật trạng thái publish của bài viết
-                cursor.execute("UPDATE "blogPosts" SET publish = ? WHERE id = ?", (published_status, blogID))
+                cursor.execute("UPDATE \"blogPosts\" SET publish = ? WHERE id = ?", (published_status, blogID))
                 conn.commit()
                 return 'Updated'
             else:
@@ -496,7 +496,7 @@ def view_blog(blog_title):
     # Sử dụng context manager để lấy cursor và connection
     with getDB() as (cursor, conn):  # unpack cursor và conn từ context manager
         # Kiểm tra xem id có tồn tại trong cơ sở dữ liệu không
-        cursor.execute("SELECT id FROM "user" WHERE id = ?", (id,)).fetchone()
+        cursor.execute("SELECT id FROM \"user\" WHERE id = ?", (id,)).fetchone()
         if not id:        
             return redirect(url_for('login'))
 
@@ -505,7 +505,7 @@ def view_blog(blog_title):
 
         # Lấy thông tin bài viết từ cơ sở dữ liệu
         blog_post = cursor.execute(
-            "SELECT title, content, likes, authorname, "userID" FROM "blogPosts" WHERE title = ? AND publish = 1",
+            "SELECT title, content, likes, authorname, \"userID\" FROM \"blogPosts\" WHERE title = ? AND publish = 1",
             (decode_title,)
         ).fetchone()
 
@@ -514,12 +514,12 @@ def view_blog(blog_title):
 
             # Lấy thông tin bình luận của bài viết
             comment_content = cursor.execute(
-                "SELECT username, comment FROM "commentsBlog" WHERE title = ?", (decode_title,)
+                "SELECT username, comment FROM \"commentsBlog\" WHERE title = ?", (decode_title,)
             ).fetchall()
 
             # Kiểm tra xem người dùng đã thích bài viết chưa
             liked = cursor.execute(
-                "SELECT liked FROM "likedBlogs" WHERE title = ? AND userID = ?", (decode_title, id)
+                "SELECT liked FROM \"likedBlogs\" WHERE title = ? AND userID = ?", (decode_title, id)
             ).fetchone()
             liked = liked[0] if liked else 0
 
@@ -548,7 +548,7 @@ def new_chat():
         # Sử dụng with để quản lý kết nối và cursor
         with getDB() as (cursor, conn):
             # Kiểm tra xem id người dùng có tồn tại trong cơ sở dữ liệu không
-            cursor.execute("SELECT id FROM "user" WHERE id = ?", (id,))
+            cursor.execute("SELECT id FROM \"user\" WHERE id = ?", (id,))
             if not cursor.fetchone():  # Sửa kiểm tra nếu không tìm thấy người dùng
                 return redirect(url_for('login'))  # Redirect nếu người dùng không tồn tại
 
@@ -560,11 +560,11 @@ def new_chat():
                 # Kiểm tra định dạng email hoặc username
                 if re.match(r'^[\w\.-]+@[\w\.-]+$', search_input):  # Kiểm tra email
                     recipient_info = cursor.execute(
-                        "SELECT id, username, "emailAddr" FROM "user" WHERE emailAddr = ?", (search_input,)
+                        "SELECT id, username, \"emailAddr\" FROM \"user\" WHERE emailAddr = ?", (search_input,)
                     ).fetchone()
                 else:  # Kiểm tra username
                     recipient_info = cursor.execute(
-                        "SELECT id, username, "emailAddr" FROM "user" WHERE username = ?", (search_input,)
+                        "SELECT id, username, \"emailAddr\" FROM \"user\" WHERE username = ?", (search_input,)
                     ).fetchone()
 
                 if recipient_info:
@@ -588,7 +588,7 @@ def new_chat():
                         # Tạo mới chat và lưu tin nhắn đầu tiên
                         chat_id = str(uuid.uuid4())
                         cursor.execute(
-                            "INSERT INTO chat (id, "userID1", "userID2") VALUES (?, ?, ?)", (chat_id, id, recipient_id)
+                            "INSERT INTO chat (id, \"userID1\", \"userID2\") VALUES (?, ?, ?)", (chat_id, id, recipient_id)
                         )
                         conn.commit()
                         cursor.execute("INSERT INTO messages (room_id) VALUES (?)", (chat_id,))
@@ -608,7 +608,7 @@ def allChat():
 
     # Kiểm tra id có tồn tại trong cơ sở dữ liệu không
     with getDB() as (cursor, conn):
-        cursor.execute("SELECT id FROM "user" WHERE id = %s", (id,))
+        cursor.execute("SELECT id FROM \"user\" WHERE id = %s", (id,))
         if not cursor.fetchone():        
             return redirect(url_for('login'))  # Redirect đến trang login nếu người dùng không tồn tại
 
@@ -618,20 +618,20 @@ def allChat():
             count_noti_chat = cursor.execute("SELECT count(*) from notification where myid= %s and ischat = 1", (id,)).fetchone()
 
             # Truy vấn tất cả các phòng chat mà người dùng tham gia
-            chat_list = cursor.execute("SELECT id, "userID1", "userID2" FROM chat WHERE userID1 = %s OR userID2 = %s", (id, id)).fetchall()
+            chat_list = cursor.execute("SELECT id, \"userID1\", \"userID2\" FROM chat WHERE userID1 = %s OR userID2 = %s", (id, id)).fetchall()
             count_noti = cursor.execute("SELECT count(*) from notification where myid= %s", (id,)).fetchone()
 
             data = []
             messages = []
 
             # Lấy thông tin người dùng
-            queryname = cursor.execute("SELECT id, username from "user" where id = %s", (id,)).fetchone()
+            queryname = cursor.execute("SELECT id, username from \"user\" where id = %s", (id,)).fetchone()
             myid, ownname = queryname
 
             des_id = None
             if chat_list:
                 if room_id: 
-                    get_desit = cursor.execute("SELECT "userID1", "userID2" FROM chat WHERE id = %s", (room_id,)).fetchall()
+                    get_desit = cursor.execute("SELECT \"userID1\", \"userID2\" FROM chat WHERE id = %s", (room_id,)).fetchall()
                     if get_desit: 
                         id1, id2 = get_desit[0]
                         des_id = id1 if id1 != id else id2
@@ -760,7 +760,7 @@ def accept():
                         return jsonify({'error': 'Chat already exists'}), 400
                     else:
                         chat_id = str(uuid.uuid4())
-                        cursor.execute("INSERT INTO chat (id, "userID1", "userID2") VALUES (?, ?, ?)", (chat_id, id, recipient_id))
+                        cursor.execute("INSERT INTO chat (id, \"userID1\", \"userID2\") VALUES (?, ?, ?)", (chat_id, id, recipient_id))
                         conn.commit()
 
                         chat_roomID = chat_id
@@ -791,14 +791,14 @@ def update_like():
             like_unlike = 1 if action == "like" else 0
 
             # Kiểm tra xem người dùng đã thích blog này chưa
-            blog_and_user_existed = cursor.execute("SELECT * FROM "likedBlogs" WHERE title = ? AND userID = ?", (post_title, id)).fetchone()
+            blog_and_user_existed = cursor.execute("SELECT * FROM \"likedBlogs\" WHERE title = ? AND userID = ?", (post_title, id)).fetchone()
 
             if blog_and_user_existed:
                 # Cập nhật trạng thái thích/không thích
-                cursor.execute("UPDATE "likedBlogs" SET liked = ? WHERE title = ? AND userID = ?", (like_unlike, post_title, id))
+                cursor.execute("UPDATE \"likedBlogs\" SET liked = ? WHERE title = ? AND userID = ?", (like_unlike, post_title, id))
             else:
                 # Thêm vào bảng likedBlogs nếu chưa có
-                cursor.execute("INSERT INTO "likedBlogs" (title, "userID", liked) VALUES (?, ?, ?)", (post_title, id, like_unlike))
+                cursor.execute("INSERT INTO \"likedBlogs\" (title, \"userID\", liked) VALUES (?, ?, ?)", (post_title, id, like_unlike))
 
             conn.commit()
             return jsonify({"message": "Likes updated successfully"}), 200
@@ -821,7 +821,7 @@ def addComments(blog_title):
                 return jsonify({"error": "Comment can't be empty"}), 400
 
             # Thêm comment vào bảng commentsBlog
-            cursor.execute("INSERT INTO "commentsBlog" (title, username, comment) VALUES (?, ?, ?)", (blog_title, id, commentContent))
+            cursor.execute("INSERT INTO \"commentsBlog\" (title, username, comment) VALUES (?, ?, ?)", (blog_title, id, commentContent))
             conn.commit()
 
             return jsonify({"message": "Comment added successfully"}), 200
@@ -844,12 +844,12 @@ def viewProfile(user_id):
         # Sử dụng with để quản lý kết nối và cursor
         with getDB() as (cursor, conn):
             # Lấy thông tin người dùng từ cơ sở dữ liệu
-            user_info = cursor.execute("SELECT name, username, "emailAddr" FROM user WHERE id = ?", (decoded_id,)).fetchone()
+            user_info = cursor.execute("SELECT name, username, \"emailAddr\" FROM user WHERE id = ?", (decoded_id,)).fetchone()
             if user_info:
                 name, username, emailAddr = user_info
                 
                 # Lấy tất cả các blog đã xuất bản của người dùng
-                all_blogs = cursor.execute("SELECT title, likes FROM "blogPosts" WHERE userID = ? AND publish = 1", (decoded_id,)).fetchall()
+                all_blogs = cursor.execute("SELECT title, likes FROM \"blogPosts\" WHERE userID = ? AND publish = 1", (decoded_id,)).fetchall()
 
                 if not all_blogs:
                     return render_template("userProfile.html", all_blogs=[], name=name, username=username, emailAddr=emailAddr, message="No blogs found")

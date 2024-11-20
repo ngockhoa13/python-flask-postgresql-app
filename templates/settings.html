@@ -98,7 +98,7 @@
     {% if profile_pic %}
     <style>
       .setting-ava {
-        background-image: url("../assests/static{{ url_for('static', filename='../users_uploads/' + profile_pic) }}");
+        background-image: url("../static{{ url_for('static', filename='../users_uploads/' + profile_pic) }}");
       }
     </style>
     {% endif %} 

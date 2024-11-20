@@ -273,50 +273,67 @@ def home():
 @app.route('/profile')
 @check_session
 def profile():
-    id = session.get('id')  # Lấy ID từ session
-    if not id:
-        return redirect('/login')  # Nếu không có ID, chuyển hướng đến trang đăng nhập
+    # Lấy ID từ session
+    user_id = session.get('id')
+    if not user_id:
+        return redirect('/login')  # Chuyển hướng nếu không có ID
 
-    with getDB() as (cursor, conn):
-        try:
+    try:
+        with getDB() as (cursor, conn):
             # Kiểm tra người dùng tồn tại
-            user_info = cursor.execute("SELECT username FROM user WHERE id = ?", (id,)).fetchone()
+            user_info = cursor.execute("SELECT username FROM \"user\" WHERE id = %s", (user_id,)).fetchone()
             if not user_info:
                 return redirect('/login')
 
             username = user_info[0]
 
             # Truy vấn dữ liệu liên quan đến blog và thông tin khác
-            blog_count = cursor.execute("SELECT COUNT(*) FROM \"blogPosts\" WHERE \"userID\" = ?", (id,)).fetchone()[0]
-            blog_info = cursor.execute("SELECT id, title, content, authorname, publish FROM \"blogPosts\" WHERE \"userID\" = ?", (id,)).fetchall()
-            published_blogs = cursor.execute("SELECT id, title, authorname, publish FROM \"blogPosts\" WHERE \"userID\" = ? AND publish = 1", (id,)).fetchall()
+            blog_count = cursor.execute("SELECT COUNT(*) FROM \"blogPosts\" WHERE \"userID\" = %s", (user_id,)).fetchone()[0]
+            blog_info = cursor.execute(
+                "SELECT id, title, content, authorname, publish FROM \"blogPosts\" WHERE \"userID\" = %s",
+                (user_id,)
+            ).fetchall()
+            published_blogs = cursor.execute(
+                "SELECT id, title, authorname, publish FROM \"blogPosts\" WHERE \"userID\" = %s AND publish = 1",
+                (user_id,)
+            ).fetchall()
 
             # Xử lý blog đã thích
-            liked_blogs_title = cursor.execute("SELECT title FROM \"likedBlogs\" WHERE liked = 1 AND \"userID\" = ?", (id,)).fetchall()
+            liked_blogs_title = cursor.execute(
+                "SELECT title FROM \"likedBlogs\" WHERE liked = 1 AND \"userID\" = %s",
+                (user_id,)
+            ).fetchall()
             total_blog = []
             for title_blog in liked_blogs_title:
                 final_title = title_blog[0]
-                liked_blogs = cursor.execute("SELECT id, title, authorname, publish FROM \"blogPosts\" WHERE title = ?", (final_title,)).fetchall()
+                liked_blogs = cursor.execute(
+                    "SELECT id, title, authorname, publish FROM \"blogPosts\" WHERE title = %s",
+                    (final_title,)
+                ).fetchall()
                 total_blog += liked_blogs
 
             # Xử lý ảnh đại diện
-            avatar_path = os.path.join(app.config['UPLOAD_FOLDER'], str(id), 'avatar.jpg')
+            upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
+            avatar_path = os.path.join(upload_folder, str(user_id), 'avatar.jpg')
             if os.path.exists(avatar_path):
-                profile_pic = os.path.join(str(id), 'avatar.jpg')
+                profile_pic = os.path.join(str(user_id), 'avatar.jpg')
             else:
                 profile_pic = "../../img/avatar.jpg"
 
             # Kết xuất template
-            return render_template('profile.html', 
-                                   username=username, 
-                                   blog_info=blog_info, 
-                                   profile_pic=profile_pic, 
-                                   published_blogs=published_blogs, 
-                                   blog_count=blog_count, 
-                                   liked_blogs=total_blog)
-        except Exception as error:
-            print(f"ERROR: {error}", flush=True)
-            return jsonify({"error": "Internal Server Error"}), 500
+            return render_template(
+                'profile.html',
+                username=username,
+                blog_info=blog_info,
+                profile_pic=profile_pic,
+                published_blogs=published_blogs,
+                blog_count=blog_count,
+                liked_blogs=total_blog
+            )
+    except Exception as error:
+        print(f"ERROR: {error}")
+        print(traceback.format_exc())  # In chi tiết lỗi
+        return jsonify({"error": "Internal Server Error"}), 500
 
     return redirect('/login')
 

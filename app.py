@@ -428,6 +428,7 @@ def save_blog():
         # Lấy thông tin người dùng từ cơ sở dữ liệu
         user_info = cursor.execute("SELECT id, username FROM \"user\" WHERE id = %s", (id,)).fetchone()
         if not user_info:
+            app.logger.error("User not found in database")
             return redirect(url_for('login'))  # Người dùng không tồn tại
 
         username = user_info[1]
@@ -435,24 +436,29 @@ def save_blog():
         if request.method == "POST":
             try:
                 if not request.json:
+                    app.logger.error("Invalid or missing JSON payload")
                     return "Invalid or missing JSON payload", 400
 
                 blogTitle = request.json.get('blogTitle')
                 blogContent = request.json.get('blogContent')
 
+                # Kiểm tra xem blogTitle và blogContent có hợp lệ không
                 if blogTitle and blogContent:
                     # Thêm blog mới vào cơ sở dữ liệu
                     cursor.execute(
-                        "INSERT INTO blogPosts (userID, title, content, authorname) VALUES (%s, %s, %s, %s)",
+                        "INSERT INTO \"blogPosts\" (\"userID\", title, content, authorname) VALUES (%s, %s, %s, %s)",
                         (id, blogTitle, blogContent, username)
                     )
                     conn.commit()
+                    app.logger.info(f"Blog successfully uploaded by user {username} with title: {blogTitle}")
                     return "Blog successfully uploaded!"
                 else:
+                    app.logger.error("Missing blog title or content")
                     return "Missing blog title or content", 400
             except Exception as error:
                 app.logger.error(f"ERROR in /save_blog: {error}")
-                return "Server error occurred", 500
+                app.logger.error(traceback.format_exc())  # Ghi chi tiết lỗi vào log
+                return jsonify({"error": "Server error occurred", "message": str(error)}), 500
     return None
 
 

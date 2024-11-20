@@ -199,10 +199,11 @@ def home():
 
         # Truy vấn số lượng thông báo
         cursor.execute("SELECT COUNT(*) FROM \"notification\" WHERE myid = %s", (str(id),))
-        count_noti = cursor.fetchone()['count']
+        count_noti = cursor.fetchone()[0]  # Truy xuất giá trị đầu tiên (COUNT(*)) trong tuple
 
         cursor.execute("SELECT COUNT(*) FROM \"notification\" WHERE myid = %s AND ischat = TRUE", (str(id),))
-        count_noti_chat = cursor.fetchone()['count']
+        count_noti_chat = cursor.fetchone()[0]  # Truy xuất giá trị đầu tiên (COUNT(*)) trong tuple
+
 
         # Lấy danh sách blog
         cursor.execute("SELECT title, content FROM \"blogPosts\" WHERE publish = TRUE ORDER BY RANDOM() LIMIT 5")

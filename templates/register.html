@@ -141,63 +141,39 @@
           </div>
         </div>
         <div class="osu-page osu-page--generic">
-          <form method="POST" action="/settings" enctype="multipart/form-data">
-            {{ form.hidden_tag() }}
-        
-            <div class="account-edit-entry">
-                {{ form.name(class="account-edit-entry__input", placeholder="Your full name") }}
-                <div class="account-edit-entry__label">Name</div>
-                {% if form.name.errors %}
-                    <div class="error-message">{{ form.name.errors[0] }}</div>
-                {% endif %}
-            </div>
-        
-            <div class="account-edit-entry">
-                {{ form.username(class="account-edit-entry__input", placeholder="Your username") }}
+          <form method="POST" action="/register">
+            {{ form.hidden_tag() }} <!-- CSRF token -->
+            
+            <div class="account-edit-entry js-account-edit">
+                {{ form.username(class="account-edit-entry__input js-account-edit__input", value=form.username.data or '') }}
                 <div class="account-edit-entry__label">Username</div>
                 {% if form.username.errors %}
                     <div class="error-message">{{ form.username.errors[0] }}</div>
                 {% endif %}
             </div>
         
-            <div class="account-edit-entry">
-                {{ form.email(class="account-edit-entry__input", placeholder="Your email") }}
-                <div class="account-edit-entry__label">Email</div>
-                {% if form.email.errors %}
-                    <div class="error-message">{{ form.email.errors[0] }}</div>
-                {% endif %}
-            </div>
-        
-            <div class="account-edit-entry">
-                {{ form.password(class="account-edit-entry__input", placeholder="New password") }}
+            <div class="account-edit-entry js-account-edit">
+                {{ form.password(class="account-edit-entry__input js-account-edit__input") }}
                 <div class="account-edit-entry__label">Password</div>
                 {% if form.password.errors %}
                     <div class="error-message">{{ form.password.errors[0] }}</div>
                 {% endif %}
             </div>
         
-            <div class="account-edit-entry">
-                {{ form.bio(class="account-edit-entry__input", placeholder="Tell about yourself...") }}
-                <div class="account-edit-entry__label">Bio</div>
-                {% if form.bio.errors %}
-                    <div class="error-message">{{ form.bio.errors[0] }}</div>
+            <div class="account-edit-entry js-account-edit">
+                {{ form.email(class="account-edit-entry__input js-account-edit__input", value=form.email.data or '') }}
+                <div class="account-edit-entry__label">Email</div>
+                {% if form.email.errors %}
+                    <div class="error-message">{{ form.email.errors[0] }}</div>
                 {% endif %}
             </div>
         
-            <div class="account-edit-entry">
-                {{ form.avatar(class="account-edit-entry__input") }}
-                <div class="account-edit-entry__label">Upload Avatar</div>
-                {% if form.avatar.errors %}
-                    <div class="error-message">{{ form.avatar.errors[0] }}</div>
-                {% endif %}
-            </div>
-        
-            <div class="account-edit-entry">
+            <div class="account-edit-entry js-account-edit">
                 <button type="submit" class="btn-osu-big btn-osu-big--account-edit">
-                    <div class="btn-osu">Save Changes</div>
+                    <div class="btn-osu">Register</div>
                 </button>
             </div>
-        </form>    
+        </form>        
           {% if message %}
             <div class="alert alert-danger" role="alert">{{ message }}</div>
           {% endif %}

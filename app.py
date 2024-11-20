@@ -285,6 +285,7 @@ def profile():
             # Kiểm tra người dùng tồn tại
             user_info = cursor.execute("SELECT username FROM \"user\" WHERE id = %s", (user_id,)).fetchone()
             if not user_info:
+                flash("User not found. Please login again.", "danger")
                 return redirect('/login')  # Chuyển hướng nếu người dùng không tồn tại
 
             username = user_info[0]
@@ -333,12 +334,9 @@ def profile():
                 liked_blogs=total_blog
             )
     except Exception as error:
-        # Sử dụng Flask logger để ghi lỗi vào log stream trên Azure
-        app.logger.error(f"ERROR: {error}")
-        app.logger.error(traceback.format_exc())  # Ghi chi tiết lỗi vào log
-        return jsonify({"error": "Internal Server Error"}), 500
+        flash(f"An error occurred while fetching profile data. Please try again. Error: {error}", "danger")
+        return redirect(url_for('profile'))  # Quay lại trang profile khi có lỗi xảy ra
 
-    return redirect('/login')
 
 
 class SettingsForm(FlaskForm):
@@ -360,10 +358,11 @@ def settings():
 
     # Kết nối DB
     with getDB() as (cursor, conn):
-        cursor.execute('SELECT name, username, \"emailAddr\", password, bio FROM \"user\" WHERE id = %s', (id,))
+        cursor.execute('SELECT name, username, "emailAddr", password, bio FROM "user" WHERE id = %s', (id,))
         user_info = cursor.fetchone()
         if not user_info:
-            return jsonify({"error": "User not found"}), 404
+            flash("User not found", "danger")
+            return redirect(url_for('login'))  # Nếu không tìm thấy người dùng, chuyển hướng về trang đăng nhập
 
         # Lấy thông tin từ DB
         name, username, emailAddr, hashed_password, bio = user_info
@@ -402,11 +401,13 @@ def settings():
                 return redirect(url_for('settings'))
 
             except Exception as error:
-                app.logger.error(f"ERROR in /settings: {error}")
-                app.logger.error(traceback.format_exc())  # Ghi chi tiết lỗi vào log
-                flash("An error occurred while updating your profile. Please try again.", "danger")
-                return redirect(url_for('settings'))
+                flash(f"An error occurred while updating your profile. Please try again. Error: {error}", "danger")
+                return redirect(url_for('settings'))  # Trả lại trang settings nếu có lỗi
 
+    # Lấy ảnh đại diện nếu có
+    upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
+    avatar_path = os.path.join(upload_folder, f"{id}/avatar.jpg")
+    profile_pic = avatar_path if os.path.exists(avatar_path) else "../../img/avatar.jpg"
 
     return render_template('settings.html', form=form, profile_pic=profile_pic)
 

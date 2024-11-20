@@ -408,7 +408,7 @@ def settings():
             # Kiểm tra xem có thay đổi gì không
             if (new_name != name or new_username != username or new_email != emailAddr or new_bio != bio):
                 with getDB() as (cursor, conn):
-                    cursor.execute("UPDATE \"user\" SET name = %s, username = %s, \"emailAddr\" = %s, bio = %s WHERE id = %s",
+                    cursor.execute("UPDATE \"user\" SET name = %s, username = %s, \"emailAddr\" = %s WHERE id = %s",
                                    (new_name, new_username, new_email, new_bio, user_id))
                     conn.commit()
 

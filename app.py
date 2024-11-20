@@ -186,34 +186,32 @@ def home():
     with getDB() as (cursor, conn):
         id = session.get('id')
         profile_pic, data = None, []
-        
-        # Kiểm tra id hợp lệ trước khi truy vấn
+
+        # Kiểm tra ID hợp lệ
         if not id:
             return redirect('/login')
 
-        # Kiểm tra user có tồn tại hay không
+        # Kiểm tra user có tồn tại
         cursor.execute("SELECT id FROM \"user\" WHERE id = %s", (id,))
         user_data = cursor.fetchone()
         if not user_data:
             return redirect('/login')
 
         # Truy vấn số lượng thông báo
-        cursor.execute("SELECT count(*) FROM \"notification\" WHERE myid = %s", (str(id),))
-        count_noti = cursor.fetchone()
-        count_noti = count_noti[0] if count_noti else 0
+        cursor.execute("SELECT COUNT(*) FROM \"notification\" WHERE myid = %s", (str(id),))
+        count_noti = cursor.fetchone()['count']
 
-        cursor.execute("SELECT count(*) FROM \"notification\" WHERE myid = %s AND ischat = TRUE", (str(id),))
-        count_noti_chat = cursor.fetchone()
-        count_noti_chat = count_noti_chat[0] if count_noti_chat else 0
+        cursor.execute("SELECT COUNT(*) FROM \"notification\" WHERE myid = %s AND ischat = TRUE", (str(id),))
+        count_noti_chat = cursor.fetchone()['count']
 
         # Lấy danh sách blog
-        cursor.execute("SELECT title, content FROM \"blogPosts\" WHERE publish = 1 ORDER BY RANDOM() LIMIT 5")
-        blog_info = cursor.fetchall() or []  # Nếu không có bài blog, trả về danh sách rỗng
+        cursor.execute("SELECT title, content FROM \"blogPosts\" WHERE publish = TRUE ORDER BY RANDOM() LIMIT 5")
+        blog_info = cursor.fetchall() or []
 
         # Lấy thông tin người dùng
         cursor.execute("SELECT username FROM \"user\" WHERE id = %s", (id,))
         user_info = cursor.fetchone()
-        user_info = user_info[0] if user_info else "Unknown"
+        user_info = user_info['username'] if user_info else "Unknown"
 
         # Kiểm tra ảnh đại diện
         avatar_path = os.path.join(app.config['UPLOAD_FOLDER'], id, 'avatar.jpg')
@@ -221,15 +219,15 @@ def home():
 
         # Lấy danh sách thông báo
         cursor.execute("SELECT myid, content, timestamp, from_id, ischat FROM \"notification\" WHERE myid = %s", (str(id),))
-        noti_list = cursor.fetchall() or []  # Nếu không có thông báo, trả về danh sách rỗng
-        
+        noti_list = cursor.fetchall() or []
+
         for noti in noti_list:
-            myid, content, timestamp, fromid, ischat = noti
+            myid, content, timestamp, fromid, ischat = noti['myid'], noti['content'], noti['timestamp'], noti['from_id'], noti['ischat']
 
             # Lấy thông tin người gửi
             cursor.execute("SELECT username FROM \"user\" WHERE id = %s", (fromid,))
             sender_name = cursor.fetchone()
-            sender_name = sender_name[0] if sender_name else "Unknown"
+            sender_name = sender_name['username'] if sender_name else "Unknown"
 
             sender_ava_path = os.path.join(app.config['UPLOAD_FOLDER'], fromid, 'avatar.jpg')
             sender_pic = fromid + '/avatar.jpg' if os.path.exists(sender_ava_path) else "../../img/avatar.jpg"
@@ -240,7 +238,7 @@ def home():
                 (id, fromid, fromid, id)
             )
             rid = cursor.fetchone()
-            rid = rid[0] if rid else None
+            rid = rid['id'] if rid else None
 
             # Thêm thông báo vào danh sách
             data.append({
@@ -265,6 +263,7 @@ def home():
             count_noti=count_noti,
             count_noti_chat=count_noti_chat
         )
+
 
 
 

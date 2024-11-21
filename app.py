@@ -10,6 +10,8 @@ from werkzeug.security import generate_password_hash
 from functools import wraps
 from middlewares.file_upload import handle_file_upload
 import traceback
+from urllib.parse import unquote
+
 
 app = Flask(__name__, static_folder='static')
 app.config['UPLOAD_FOLDER'] = 'static/users_uploads'

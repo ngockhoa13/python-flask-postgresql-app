@@ -504,6 +504,14 @@ def save_blog():
         errors = form.errors
         return jsonify({"error": "Invalid form data", "details": errors}), 400
 
+# Đảm bảo rằng route này hiển thị form
+@app.route("/show_blog_form", methods=["GET"])
+@check_session
+def show_blog_form():
+    form = BlogForm()  # Khởi tạo form khi hiển thị
+    return render_template("index.html", form=form)
+
+
 
 
 

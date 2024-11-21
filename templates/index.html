@@ -161,23 +161,26 @@
 
               <div class="create-title">
                 <label for="title">Title</label>
-                <input 
-                  class="title-blog" 
-                  type="text" 
-                  id="blog-title" 
-                  name="blogTitle" 
-                  value="{{ form.blogTitle.data }}" 
-                  required 
-                  style="display: block; padding: 5px 10px; margin-bottom: 10px; width: 284px; height: 37px; line-height: 1.3;">
+                {{ form.blogTitle(class="title-blog", id="blog-title", required="required", style="display: block; padding: 5px 10px; margin-bottom: 10px; width: 284px; height: 37px; line-height: 1.3;") }}
+                {% if form.blogTitle.errors %}
+                  <ul>
+                    {% for error in form.blogTitle.errors %}
+                      <li style="color: red;">{{ error }}</li>
+                    {% endfor %}
+                  </ul>
+                {% endif %}
               </div>
               
               <span class="content" style="color: #39ac91; font-size: 25px; display: inline-block; margin-bottom:20px">Content</span>
-              <textarea 
-                class="create-content" 
-                name="blogContent" 
-                required 
-                style="display: block; width: 100%; height: 150px;">{{ form.blogContent.data }}</textarea>
-          
+              {{ form.blogContent(class="create-content", required="required", style="display: block; width: 100%; height: 150px;") }}
+              {% if form.blogContent.errors %}
+                <ul>
+                  {% for error in form.blogContent.errors %}
+                    <li style="color: red;">{{ error }}</li>
+                  {% endfor %}
+                </ul>
+              {% endif %}
+              
               <div class="post-redirect-btn">
                 <button type="submit" class="tag badge hover">Create</button>
               </div>
@@ -185,6 +188,7 @@
           </div>
         </div>
       </section>
+
 
 
       

@@ -101,7 +101,7 @@
                   <!-- Checkbox for Published -->
                   <div class="published-checkbox">
                     <label for="published{{ title }}">Published</label>
-                    <input type="checkbox" id="published{{ title }}" name="published" onchange="updatePublished('{{ title }}')" {% if publish == 1 %} checked {% endif %}>
+                    <input type="checkbox" id="published{{ title }}" name="published" onchange="updatePublished('{{ title }}')" {% if publish == TRUE %} checked {% endif %}>
                 </div>
                 
                   <div class="item-content">
@@ -382,28 +382,30 @@
         }
 
         // Tạo yêu cầu AJAX để cập nhật trạng thái published
-        var xhr = new XMLHttpRequest();
-        xhr.open("POST", "/update_published", true);
-        xhr.setRequestHeader("Content-Type", "application/json");
-
-        // Thêm CSRF token vào header của yêu cầu
-        xhr.setRequestHeader("X-CSRFToken", csrfToken.getAttribute('content'));
-
-        // Gửi blogTitle và trạng thái published trong thân yêu cầu
-        xhr.onload = function () {
-            if (xhr.status === 200) {
+        fetch('/update_published', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken.getAttribute('content')
+            },
+            body: JSON.stringify({
+                blogTitle: blogTitle,
+                published: isChecked
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.message === "Updated") {
                 console.log("Blog published status updated successfully.");
             } else {
-                console.error("Failed to update published status. Response:", xhr.responseText);
+                console.error("Failed to update published status. Response:", data);
             }
-        };
-
-        xhr.onerror = function () {
-            console.error("AJAX request failed.");
-        };
-
-        xhr.send(JSON.stringify({ blogTitle: blogTitle, published: isChecked }));
+        })
+        .catch(error => {
+            console.error("Error updating published status:", error);
+        });
     }
+
 
     </script>
     

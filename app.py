@@ -572,13 +572,12 @@ def check_csrf_token(func):
     return decorated_function
 
 
+# Route cập nhật trạng thái publish
 @app.route("/update_published", methods=["POST"])
-@check_session  # Kiểm tra phiên làm việc (session)
-@check_csrf_token  # Kiểm tra CSRF token
+@check_session
+@check_csrf_token
 def update_published():
     id = session.get('id')
-
-    # Kiểm tra nếu không có id trong session
     if not id:
         return redirect(url_for('login'))
 
@@ -588,12 +587,11 @@ def update_published():
             published_status = request.json.get('published')
 
             if blog_title and published_status is not None:
-                # Giải mã tiêu đề từ JSON
                 decode_title = unquote(blog_title)
 
-                # Cập nhật trạng thái publish của bài viết dựa vào tiêu đề
+                # Cập nhật trạng thái publish
                 cursor.execute(
-                    "UPDATE \"blogPosts\" SET publish = ? WHERE title = ? AND \"userID\" = ?",
+                    "UPDATE \"blogPosts\" SET publish = %s WHERE title = %s AND \"userID\" = %s",
                     (published_status, decode_title, id)
                 )
                 conn.commit()
@@ -609,53 +607,60 @@ def update_published():
             print(f"ERROR: {error}", flush=True)
             return jsonify({"error": "Server error occurred"}), 500
 
-
-
-
-
+# Route xem bài viết
 @app.route('/blog/<string:blog_title>')
 @check_session
 def view_blog(blog_title):
     id = session.get('id')
+    if not id:
+        return redirect(url_for('login'))
 
     with getDB() as (cursor, conn):
-        cursor.execute("SELECT id FROM \"user\" WHERE id = ?", (id,)).fetchone()
-        if not id:
-            return redirect(url_for('login'))
+        try:
+            decode_title = unquote(blog_title)
 
-        decode_title = unquote(blog_title)
-
-        # Lấy thông tin bài viết và trạng thái published
-        blog_post = cursor.execute(
-            "SELECT title, content, likes, authorname, \"userID\", publish FROM \"blogPosts\" WHERE title = ? AND publish = 1",
-            (decode_title,)
-        ).fetchone()
-
-        if blog_post:
-            title, content, likes, authorname, userID, publish_status = blog_post
-
-            comment_content = cursor.execute(
-                "SELECT username, comment FROM \"commentsBlog\" WHERE title = ?", (decode_title,)
-            ).fetchall()
-
-            liked = cursor.execute(
-                "SELECT liked FROM \"likedBlogs\" WHERE title = ? AND userID = ?", (decode_title, id)
-            ).fetchone()
-            liked = liked[0] if liked else 0
-
-            return render_template(
-                'blog.html',
-                title=title,
-                content=content,
-                likes=likes,
-                comment_content=comment_content,
-                id=userID,
-                authorname=authorname,
-                liked=liked,
-                publish=publish_status
+            # Lấy thông tin bài viết
+            cursor.execute(
+                "SELECT title, content, likes, authorname, \"userID\", publish FROM \"blogPosts\" WHERE title = %s AND publish = TRUE",
+                (decode_title,)
             )
-        else:
-            return redirect(url_for('home'))
+            blog_post = cursor.fetchone()
+
+            if blog_post:
+                title, content, likes, authorname, userID, publish_status = blog_post
+
+                # Lấy bình luận
+                cursor.execute(
+                    "SELECT username, comment FROM \"commentsBlog\" WHERE title = %s",
+                    (decode_title,)
+                )
+                comment_content = cursor.fetchall()
+
+                # Kiểm tra bài viết đã được like hay chưa
+                cursor.execute(
+                    "SELECT liked FROM \"likedBlogs\" WHERE title = %s AND \"userID\" = %s",
+                    (decode_title, id)
+                )
+                liked = cursor.fetchone()
+                liked = liked[0] if liked else 0
+
+                return render_template(
+                    'blog.html',
+                    title=title,
+                    content=content,
+                    likes=likes,
+                    comment_content=comment_content,
+                    id=userID,
+                    authorname=authorname,
+                    liked=liked,
+                    publish=publish_status
+                )
+            else:
+                return redirect(url_for('home'))
+
+        except Exception as error:
+            print(f"ERROR: {error}", flush=True)
+            return jsonify({"error": "Server error occurred"}), 500
 
 
 

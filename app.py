@@ -556,8 +556,25 @@ def delete_blog():
 
 
 
+import secrets
+
+# Giả sử bạn có một hàm để lấy CSRF token từ session
+def get_csrf_token():
+    return session.get('_csrf_token')
+
+# Middleware kiểm tra CSRF token
+def check_csrf_token(func):
+    @wraps(func)
+    def decorated_function(*args, **kwargs):
+        csrf_token = request.headers.get('X-CSRFToken')
+        if not csrf_token or csrf_token != get_csrf_token():
+            return jsonify({"error": "CSRF token missing or invalid"}), 400
+        return func(*args, **kwargs)
+    return decorated_function
+
 @app.route("/update_published", methods=["POST"])
-@check_session
+@check_session  # Kiểm tra phiên làm việc (session)
+@check_csrf_token  # Kiểm tra CSRF token
 def published():
     id = session.get('id')
 

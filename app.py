@@ -191,6 +191,9 @@ def home():
     with getDB() as (cursor, conn):
         id = session.get('id')
         profile_pic, data = None, []
+        
+        # Khởi tạo form
+        form = BlogForm()
 
         # Kiểm tra ID hợp lệ
         if not id:
@@ -204,10 +207,10 @@ def home():
 
         # Truy vấn số lượng thông báo
         cursor.execute("SELECT COUNT(*) FROM \"notification\" WHERE myid = %s", (str(id),))
-        count_noti = cursor.fetchone()[0]  # Truy xuất giá trị đầu tiên (COUNT(*)) trong tuple
+        count_noti = cursor.fetchone()[0]  
 
         cursor.execute("SELECT COUNT(*) FROM \"notification\" WHERE myid = %s AND ischat = TRUE", (str(id),))
-        count_noti_chat = cursor.fetchone()[0]  # Truy xuất giá trị đầu tiên (COUNT(*)) trong tuple
+        count_noti_chat = cursor.fetchone()[0]  
 
         # Lấy danh sách blog
         cursor.execute("SELECT title, content FROM \"blogPosts\" WHERE publish = TRUE ORDER BY RANDOM() LIMIT 5")
@@ -216,7 +219,7 @@ def home():
         # Lấy thông tin người dùng
         cursor.execute("SELECT username FROM \"user\" WHERE id = %s", (id,))
         user_info = cursor.fetchone()
-        user_info = user_info[0] if user_info else "Unknown"  # Truy cập tên người dùng bằng chỉ số
+        user_info = user_info[0] if user_info else "Unknown"  
 
         # Kiểm tra ảnh đại diện
         avatar_path = os.path.join(app.config['UPLOAD_FOLDER'], str(id), 'avatar.jpg')
@@ -227,12 +230,12 @@ def home():
         noti_list = cursor.fetchall() or []
 
         for noti in noti_list:
-            myid, content, timestamp, fromid, ischat = noti  # Truy cập tuple trực tiếp
+            myid, content, timestamp, fromid, ischat = noti
 
             # Lấy thông tin người gửi
             cursor.execute("SELECT username FROM \"user\" WHERE id = %s", (fromid,))
             sender_name = cursor.fetchone()
-            sender_name = sender_name[0] if sender_name else "Unknown"  # Truy cập tên người gửi từ tuple
+            sender_name = sender_name[0] if sender_name else "Unknown"  
 
             sender_ava_path = os.path.join(app.config['UPLOAD_FOLDER'], str(fromid), 'avatar.jpg')
             sender_pic = str(fromid) + '/avatar.jpg' if os.path.exists(sender_ava_path) else "../../img/avatar.jpg"
@@ -243,9 +246,8 @@ def home():
                 (id, fromid, fromid, id)
             )
             rid = cursor.fetchone()
-            rid = rid[0] if rid else None  # Truy cập rid từ tuple
+            rid = rid[0] if rid else None  
 
-            # Thêm thông báo vào danh sách
             data.append({
                 "myid": myid,
                 "fromid": fromid,
@@ -257,7 +259,7 @@ def home():
                 "rid": rid
             })
 
-        # Render giao diện với dữ liệu đã xử lý
+        # Render giao diện với dữ liệu đã xử lý và form
         return render_template(
             'index.html',
             blog_info=blog_info,
@@ -266,8 +268,10 @@ def home():
             myid=id,
             data=data,
             count_noti=count_noti,
-            count_noti_chat=count_noti_chat
+            count_noti_chat=count_noti_chat,
+            form=form  # Truyền form vào template
         )
+
 
 
 

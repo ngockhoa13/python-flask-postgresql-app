@@ -600,7 +600,11 @@ def update_published():
 
                 return jsonify({"message": "Updated"})
             else:
-                return jsonify({"error": "Missing blog_title or published status"}), 400
+                return jsonify({
+                    "error": "Missing blog_title or published status",
+                    "blog_title": blog_title,
+                    "published": published
+                }), 400
 
         except Exception as error:
             print(f"ERROR: {error}", flush=True)

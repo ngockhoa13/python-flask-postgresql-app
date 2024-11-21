@@ -565,8 +565,10 @@ def check_csrf_token(func):
     @wraps(func)
     def decorated_function(*args, **kwargs):
         csrf_token = request.headers.get('X-CSRFToken')
-        if not csrf_token or csrf_token != get_csrf_token():
-            # Trả về mã lỗi 401 (Unauthorized) nếu CSRF token không hợp lệ
+        print(f"Received CSRF token: {csrf_token}")
+        expected_token = get_csrf_token()
+        print(f"Expected CSRF token: {expected_token}")
+        if not csrf_token or csrf_token != expected_token:
             return jsonify({"error": "CSRF token missing or invalid"}), 401
         return func(*args, **kwargs)
     return decorated_function

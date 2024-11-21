@@ -156,7 +156,7 @@
               <a class="create-post-title" href="#">Create your own post</a>
             </header>
             
-            <form method="POST" action="/save_blog">
+            <form id="create-blog-form" method="POST" action="/save_blog">
               {{ form.hidden_tag() }} <!-- Flask-WTF CSRF Token -->
 
               <div class="create-title">
@@ -830,5 +830,35 @@
       }
     });
   </script>    
+  <script>
+    // Lắng nghe sự kiện submit của form
+    document.getElementById("create-blog-form").addEventListener("submit", function(event) {
+      event.preventDefault(); // Ngừng gửi form theo cách mặc định
+  
+      const formData = new FormData(this);
+      const jsonData = {};
+      formData.forEach((value, key) => jsonData[key] = value);
+  
+      fetch('/save_blog', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': document.querySelector('[name=csrf_token]').value // CSRF token
+        },
+        body: JSON.stringify(jsonData)
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.message) {
+          alert(data.message);  // Hiển thị thông báo khi blog được tạo thành công
+        } else if (data.error) {
+          alert("Error: " + data.error);  // Hiển thị thông báo lỗi nếu có
+        }
+      })
+      .catch(error => {
+        alert("An error occurred: " + error); // Xử lý lỗi kết nối hoặc lỗi bất kỳ
+      });
+    });
+  </script>
   </body>
 </html>

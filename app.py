@@ -507,7 +507,8 @@ def save_blog():
                 )
                 conn.commit()
 
-                return "Blog successfully upload!"
+                # Trả về thông báo thành công
+                return jsonify({"message": "Blog successfully uploaded!"}), 200
             except Exception as error:
                 app.logger.error(f"ERROR in /save_blog: {error}")
                 return jsonify({"error": "Server error occurred", "message": str(error)}), 500
@@ -515,6 +516,7 @@ def save_blog():
         # Trả về chi tiết lỗi nếu form không hợp lệ
         errors = form.errors
         return jsonify({"error": "Invalid form data", "details": errors}), 400
+
 
 
 # Đảm bảo rằng route này hiển thị form

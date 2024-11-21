@@ -468,25 +468,28 @@ class BlogForm(FlaskForm):
     blogTitle = StringField('Title', validators=[DataRequired()])
     blogContent = TextAreaField('Content', validators=[DataRequired()])
 
-# Route để lưu bài viết blog
+from uuid import uuid4  # Import thư viện UUID
+
 @app.route("/save_blog", methods=["POST"])
 @check_session
 def save_blog():
-    id = session.get('id')  # Lấy ID người dùng từ session
+    # Kiểm tra nếu người dùng đã đăng nhập
+    id = session.get('id')
     if not id:
         return jsonify({"error": "User not logged in"}), 401
 
     form = BlogForm()
 
-    # Kiểm tra nếu form hợp lệ
+    # Kiểm tra nếu form hợp lệ (bao gồm CSRF token được kiểm tra tự động)
     if form.validate_on_submit():
         blogTitle = form.blogTitle.data
         blogContent = form.blogContent.data
 
+        # Sinh giá trị ID mới cho blog
+        blog_id = str(uuid4())  # Tạo ID dạng UUID
+
         # Lấy thông tin người dùng từ cơ sở dữ liệu
         with getDB() as (cursor, conn):
-            if not cursor or not conn:
-                return jsonify({"error": "Database connection failed"}), 500
             try:
                 cursor.execute("SELECT id, username FROM \"user\" WHERE id = %s", (id,))
                 user_info = cursor.fetchone()
@@ -495,14 +498,14 @@ def save_blog():
 
                 username = user_info[1]
 
-                # Thêm blog vào cơ sở dữ liệu
+                # Thêm blog vào cơ sở dữ liệu, bao gồm cột `id`
                 cursor.execute(
-                    "INSERT INTO \"blogPosts\" (\"userID\", title, content, authorname) VALUES (%s, %s, %s, %s)",
-                    (id, blogTitle, blogContent, username)
+                    "INSERT INTO \"blogPosts\" (\"id\", \"userID\", title, content, authorname) VALUES (%s, %s, %s, %s, %s)",
+                    (blog_id, id, blogTitle, blogContent, username)
                 )
                 conn.commit()
 
-                return jsonify({"message": "Blog successfully uploaded!"}), 200
+                return jsonify({"message": "Blog successfully uploaded!", "blog_id": blog_id}), 200
             except Exception as error:
                 app.logger.error(f"ERROR in /save_blog: {error}")
                 return jsonify({"error": "Server error occurred", "message": str(error)}), 500
@@ -510,6 +513,7 @@ def save_blog():
         # Trả về chi tiết lỗi nếu form không hợp lệ
         errors = form.errors
         return jsonify({"error": "Invalid form data", "details": errors}), 400
+
 
 # Đảm bảo rằng route này hiển thị form
 @app.route("/show_blog_form", methods=["GET"])

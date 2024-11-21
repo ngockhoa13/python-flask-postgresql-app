@@ -581,7 +581,7 @@ def update_published():
 
     with getDB() as (cursor, conn):
         try:
-            blog_title = request.json.get('blog_title')
+            blog_title = request.json.get('blogTitle')
             published = request.json.get('published')
              # Kiểm tra giá trị nhận được từ JSON
             print(f"Received blog_title: {blog_title}, published: {published}", flush=True)

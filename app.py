@@ -459,37 +459,48 @@ import logging
 # Cấu hình logging
 logging.basicConfig(level=logging.DEBUG)
 
+# Định nghĩa form với Flask-WTF
+class BlogForm(FlaskForm):
+    blogTitle = StringField('Title', validators=[DataRequired()])
+    blogContent = TextAreaField('Content', validators=[DataRequired()])
+
 @app.route("/save_blog", methods=["POST"])
 @check_session
 def save_blog():
+    # Kiểm tra nếu người dùng đã đăng nhập
     id = session.get('id')
-
     if not id:
         return jsonify({"error": "User not logged in"}), 401
 
-    with getDB() as (cursor, conn):
-        try:
-            user_info = cursor.execute("SELECT id, username FROM \"user\" WHERE id = %s", (id,)).fetchone()
-            if not user_info:
-                return jsonify({"error": "User not found"}), 404
+    form = BlogForm()
 
-            username = user_info[1]
-            blogTitle = request.json.get('blogTitle')
-            blogContent = request.json.get('blogContent')
+    # Kiểm tra nếu form hợp lệ (bao gồm CSRF token được kiểm tra tự động)
+    if form.validate_on_submit():
+        blogTitle = form.blogTitle.data
+        blogContent = form.blogContent.data
 
-            if blogTitle and blogContent:
+        # Lấy thông tin người dùng từ cơ sở dữ liệu
+        with getDB() as (cursor, conn):
+            try:
+                user_info = cursor.execute("SELECT id, username FROM \"user\" WHERE id = %s", (id,)).fetchone()
+                if not user_info:
+                    return jsonify({"error": "User not found"}), 404
+
+                username = user_info[1]
+
+                # Thêm blog vào cơ sở dữ liệu
                 cursor.execute(
                     "INSERT INTO \"blogPosts\" (\"userID\", title, content, authorname) VALUES (%s, %s, %s, %s)",
                     (id, blogTitle, blogContent, username)
                 )
                 conn.commit()
-                return jsonify({"message": "Blog successfully uploaded!"}), 200
-            else:
-                return jsonify({"error": "Missing blog title or content"}), 400
 
-        except Exception as error:
-            app.logger.error(f"ERROR in /save_blog: {error}")
-            return jsonify({"error": "Server error occurred", "message": str(error)}), 500
+                return jsonify({"message": "Blog successfully uploaded!"}), 200
+            except Exception as error:
+                app.logger.error(f"ERROR in /save_blog: {error}")
+                return jsonify({"error": "Server error occurred", "message": str(error)}), 500
+    else:
+        return jsonify({"error": "Invalid form data"}), 400
 
 
 

@@ -578,13 +578,12 @@ def check_csrf_token(func):
 def published():
     id = session.get('id')
 
+    # Kiểm tra nếu không có id trong session
+    if not id:
+        return redirect(url_for('login'))
+
     # Sử dụng context manager để lấy cursor và connection
     with getDB() as (cursor, conn):  # unpack cursor và conn từ context manager
-        # Kiểm tra xem id có tồn tại trong cơ sở dữ liệu không
-        cursor.execute("SELECT id FROM \"user\" WHERE id = ?", (id,)).fetchone()
-        if not id:        
-            return redirect(url_for('login'))
-
         try:
             blogID = request.json.get('blogID')
             published_status = request.json.get('published')
@@ -593,13 +592,13 @@ def published():
                 # Cập nhật trạng thái publish của bài viết
                 cursor.execute("UPDATE \"blogPosts\" SET publish = ? WHERE id = ?", (published_status, blogID))
                 conn.commit()
-                return 'Updated'
+                return jsonify({"message": "Updated"})
             else:
-                return "Missing data", 400
+                return jsonify({"error": "Missing data"}), 400
 
         except Exception as error:
             print(f"ERROR: {error}", flush=True)
-            return "Server error occurred", 500
+            return jsonify({"error": "Server error occurred"}), 500
 
 
 

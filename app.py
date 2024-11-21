@@ -582,15 +582,16 @@ def update_published():
     with getDB() as (cursor, conn):
         try:
             blog_title = request.json.get('blog_title')
-            published_status = request.json.get('published')
-
-            if blog_title and published_status is not None:
+            published = request.json.get('published')
+             # Kiểm tra giá trị nhận được từ JSON
+            print(f"Received blog_title: {blog_title}, published: {published}", flush=True)
+            if blog_title is not None and published is not None:
                 decode_title = unquote(blog_title)
 
                 # Cập nhật trạng thái publish
                 cursor.execute(
                     "UPDATE \"blogPosts\" SET publish = %s WHERE title = %s AND \"userID\" = %s",
-                    (True, decode_title, id)
+                    (published, decode_title, id)
                 )
                 conn.commit()
 

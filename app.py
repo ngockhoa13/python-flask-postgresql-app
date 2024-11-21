@@ -642,10 +642,10 @@ def view_blog(blog_title):
                 )
                 comment_content = cursor.fetchall()
 
-                # Kiểm tra bài viết đã được like hay chưa
+                # Kiểm tra bài viết đã được like hay chưa (Giả sử "title" được dùng thay vì "blogPostID")
                 cursor.execute(
-                    "SELECT liked FROM \"likedBlogs\" WHERE \"blogPostID\" = %s AND \"userID\" = %s",
-                    (blog_id, id)
+                    "SELECT liked FROM \"likedBlogs\" WHERE title = %s AND \"userID\" = %s",
+                    (decode_title, id)  # Thay "blogPostID" bằng "title"
                 )
                 liked = cursor.fetchone()
                 liked = liked[0] if liked else 0
@@ -667,6 +667,7 @@ def view_blog(blog_title):
         except Exception as error:
             print(f"ERROR: {error}", flush=True)
             return jsonify({"error": "Server error occurred"}), 500
+
 
 
 

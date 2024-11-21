@@ -148,7 +148,7 @@
       <!-- Blog-create -->
       <section id="mobile-post" class="blog-page none">
         <div class="create-blog-container container-v2 container">
-          <div class="create-blog card-border">
+          <div class="create-blog card-border" style="margin-left: -100px;">
             <header class="create-post-header text-center">
               <div class="mobile-post-close none">
                 <button onclick="closePost()" type="button">Close</button>
@@ -814,6 +814,21 @@
         }
       });
     }
+  </script>
+  <!-- Thêm script ở đây -->
+  <script>
+    var noti_icon = document.querySelector(".nav_noti");
+    noti_icon.addEventListener("click", function () {
+      if (document.querySelector(".blog-user-info").classList.contains("none")) {
+        document.querySelector(".blog-user-info").classList.remove("none");
+        document.querySelector(".notification").classList.add("none");
+      } else if (
+        !document.querySelector(".blog-user-info").classList.contains("none")
+      ) {
+        document.querySelector(".blog-user-info").classList.add("none");
+        document.querySelector(".notification").classList.remove("none");
+      }
+    });
   </script>    
   </body>
 </html>

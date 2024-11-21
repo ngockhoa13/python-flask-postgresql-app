@@ -148,32 +148,39 @@
       <!-- Blog-create -->
       <section id="mobile-post" class="blog-page none">
         <div class="create-blog-container container-v2 container">
-          <!-- Item 1 -->
           <div class="create-blog card-border">
             <header class="create-post-header text-center">
               <div class="mobile-post-close none">
                 <button onclick="closePost()" type="button">Close</button>
               </div>
-              <a class="create-post-title" href="https://goodapple.top/archives/1145">Create your own post</a>
+              <a class="create-post-title" href="#">Create your own post</a>
             </header>
+            
             <div class="create-title">
               <label for="title">Title</label>
-              <input class="title-blog" type="text" id="blog-title" name="blogTitle" required style="display: block; padding: 5px 10px 5px 5px; margin-bottom: 10px; width: 284px; height: 37px; line-height: 1.3;">
+              <input 
+                class="title-blog" 
+                type="text" 
+                id="blog-title" 
+                name="blogTitle" 
+                required 
+                style="display: block; padding: 5px 10px; margin-bottom: 10px; width: 284px; height: 37px; line-height: 1.3;">
             </div>
-            <span class="content" style="color: #39ac91;font-size: 25px;display: inline-block;margin-bottom:20px">Content</span>
-            <textarea class="create-content" name="blogContent" required></textarea>
+            
+            <span class="content" style="color: #39ac91; font-size: 25px; display: inline-block; margin-bottom:20px">Content</span>
+            <textarea 
+              class="create-content" 
+              name="blogContent" 
+              required 
+              style="display: block; width: 100%; height: 150px;"></textarea>
       
-            <!-- Icon react -->
             <div class="post-redirect-btn">
-              <div class="post-tags">
-                <a href="#" class="tag add-tag-badge hover">Add tag <i class="fa fa-tags" aria-hidden="true"></i></a>
-                <a href="#" id="createButton" class="tag badge hover" onclick="submitBlog()">Create</a>
-              </div>
-              <a class="view-blog hover" href="#">View</a>
+              <button type="button" class="tag badge hover" onclick="submitBlog()">Create</button>
             </div>
           </div>
         </div>
       </section>
+      
 
 
         
@@ -730,38 +737,51 @@
     </script>
     <script>
       function submitBlog() {
-        const title = document.getElementById('blog-title').value;
-        const content = document.querySelector('.create-content').value;
+        const title = document.getElementById('blog-title').value.trim();
+        const content = document.querySelector('.create-content').value.trim();
     
-        if (title && content) {
-          const blogData = {
-            blogTitle: title,
-            blogContent: content
-          };
-    
-          fetch('/save_blog', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(blogData)
-          })
-          .then(response => response.json())
-          .then(data => {
-            if (data.message) {
-              alert(data.message); // Thông báo thành công
-            } else {
-              alert('There was an error uploading the blog.');
-            }
-          })
-          .catch(error => {
-            console.error('Error:', error);
-            alert('Error occurred while posting the blog.');
-          });
-        } else {
+        // Kiểm tra dữ liệu đầu vào
+        if (!title || !content) {
           alert('Please provide both title and content.');
+          return;
         }
+    
+        const blogData = {
+          blogTitle: title,
+          blogContent: content
+        };
+    
+        // Gửi dữ liệu qua fetch API
+        fetch('/save_blog', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            // Nếu CSRF bảo vệ được bật, cần thêm token vào headers
+            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.content || ''
+          },
+          body: JSON.stringify(blogData)
+        })
+        .then(response => {
+          if (!response.ok) {
+            // Xử lý lỗi từ server (400, 500, etc.)
+            return response.json().then(errData => {
+              const errorMessage = errData.error || 'Unknown error occurred.';
+              throw new Error(errorMessage);
+            });
+          }
+          return response.json();
+        })
+        .then(data => {
+          alert(data.message || 'Blog successfully uploaded!');
+          // Reset form sau khi gửi thành công
+          document.getElementById('blog-title').value = '';
+          document.querySelector('.create-content').value = '';
+        })
+        .catch(error => {
+          console.error('Error:', error.message);
+          alert(`Error occurred: ${error.message}`);
+        });
       }
-    </script>    
+    </script>        
   </body>
 </html>

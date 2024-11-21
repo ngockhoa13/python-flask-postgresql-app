@@ -500,7 +500,10 @@ def save_blog():
                 app.logger.error(f"ERROR in /save_blog: {error}")
                 return jsonify({"error": "Server error occurred", "message": str(error)}), 500
     else:
-        return jsonify({"error": "Invalid form data"}), 400
+        # Trả về chi tiết lỗi nếu form không hợp lệ
+        errors = form.errors
+        return jsonify({"error": "Invalid form data", "details": errors}), 400
+
 
 
 

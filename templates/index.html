@@ -157,7 +157,7 @@
             </header>
             
             <form method="POST" action="/save_blog">
-              {{ form.hidden_tag() }} <!-- Thêm CSRF token vào form -->
+              {{ form.hidden_tag() }} <!-- Flask-WTF CSRF Token -->
 
               <div class="create-title">
                 <label for="title">Title</label>
@@ -166,6 +166,7 @@
                   type="text" 
                   id="blog-title" 
                   name="blogTitle" 
+                  value="{{ form.blogTitle.data }}" 
                   required 
                   style="display: block; padding: 5px 10px; margin-bottom: 10px; width: 284px; height: 37px; line-height: 1.3;">
               </div>
@@ -175,7 +176,7 @@
                 class="create-content" 
                 name="blogContent" 
                 required 
-                style="display: block; width: 100%; height: 150px;"></textarea>
+                style="display: block; width: 100%; height: 150px;">{{ form.blogContent.data }}</textarea>
           
               <div class="post-redirect-btn">
                 <button type="submit" class="tag badge hover">Create</button>
@@ -184,6 +185,7 @@
           </div>
         </div>
       </section>
+
 
       
 

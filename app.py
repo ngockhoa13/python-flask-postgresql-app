@@ -468,25 +468,28 @@ class BlogForm(FlaskForm):
     blogTitle = StringField('Title', validators=[DataRequired()])
     blogContent = TextAreaField('Content', validators=[DataRequired()])
 
+# Route để lưu bài viết blog
 @app.route("/save_blog", methods=["POST"])
 @check_session
 def save_blog():
-    # Kiểm tra nếu người dùng đã đăng nhập
-    id = session.get('id')
+    id = session.get('id')  # Lấy ID người dùng từ session
     if not id:
         return jsonify({"error": "User not logged in"}), 401
 
     form = BlogForm()
 
-    # Kiểm tra nếu form hợp lệ (bao gồm CSRF token được kiểm tra tự động)
+    # Kiểm tra nếu form hợp lệ
     if form.validate_on_submit():
         blogTitle = form.blogTitle.data
         blogContent = form.blogContent.data
 
         # Lấy thông tin người dùng từ cơ sở dữ liệu
         with getDB() as (cursor, conn):
+            if not cursor or not conn:
+                return jsonify({"error": "Database connection failed"}), 500
             try:
-                user_info = cursor.execute("SELECT id, username FROM \"user\" WHERE id = %s", (id,)).fetchone()
+                cursor.execute("SELECT id, username FROM \"user\" WHERE id = %s", (id,))
+                user_info = cursor.fetchone()
                 if not user_info:
                     return jsonify({"error": "User not found"}), 404
 

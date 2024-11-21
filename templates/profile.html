@@ -285,6 +285,7 @@
         var isChecked = checkbox.checked;
         // In ra giá trị của isChecked để debug
         console.log("Checkbox checked: " + isChecked);
+
         var item = document.querySelector('.pro-post-item #published' + blogTitle);
         if (!item) {
             console.error("Item not found for blogTitle: " + blogTitle);
@@ -385,12 +386,18 @@
             return;
         }
 
+        // Kiểm tra blogTitle và published trước khi gửi yêu cầu
+        console.log("Sending data:", {
+            blogTitle: blogTitle,
+            published: isChecked
+        });
+
         // Tạo yêu cầu AJAX để cập nhật trạng thái published
         fetch('/update_published', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken // Không cần .getAttribute('content') nữa
+                'X-CSRFToken': csrfToken
             },
             body: JSON.stringify({
                 blogTitle: blogTitle,
@@ -409,6 +416,7 @@
             console.error("Error updating published status:", error);
         });
     }
+
 
 
     </script>

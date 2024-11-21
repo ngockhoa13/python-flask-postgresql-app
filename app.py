@@ -507,7 +507,7 @@ def save_blog():
                 )
                 conn.commit()
 
-                return jsonify({"message": "Blog successfully uploaded!", "blog_id": blog_id}), 200
+                return "Blog successfully upload!"
             except Exception as error:
                 app.logger.error(f"ERROR in /save_blog: {error}")
                 return jsonify({"error": "Server error occurred", "message": str(error)}), 500

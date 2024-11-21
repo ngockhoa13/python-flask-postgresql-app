@@ -568,7 +568,8 @@ def check_csrf_token(func):
     def decorated_function(*args, **kwargs):
         csrf_token = request.headers.get('X-CSRFToken')
         if not csrf_token or csrf_token != get_csrf_token():
-            return jsonify({"error": "CSRF token missing or invalid"}), 400
+            # Trả về mã lỗi 401 (Unauthorized) thay vì 400
+            return jsonify({"error": "CSRF token missing or invalid"}), 401
         return func(*args, **kwargs)
     return decorated_function
 
@@ -594,10 +595,12 @@ def published():
                 conn.commit()
                 return jsonify({"message": "Updated"})
             else:
-                return jsonify({"error": "Missing data"}), 400
+                # Nếu thiếu dữ liệu, trả về lỗi 400 với thông báo rõ ràng
+                return jsonify({"error": "Missing blogID or published status"}), 400
 
         except Exception as error:
             print(f"ERROR: {error}", flush=True)
+            # Trả về lỗi 500 nếu có sự cố với server
             return jsonify({"error": "Server error occurred"}), 500
 
 

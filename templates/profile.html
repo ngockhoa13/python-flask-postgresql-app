@@ -277,16 +277,16 @@
       function updatePublished(blogID) {
         // Lấy checkbox theo blogID
         var checkbox = document.getElementById("published" + blogID);
-        idcheckbox = "published" + blogID;
-        item = document.querySelector('.pro-post-item #' + idcheckbox);
-        span = item.parentElement.parentElement.querySelector('.item-header').querySelector('span');
-        text = span.innerText;
         var isChecked = checkbox.checked;
-
+        var item = document.querySelector('.pro-post-item #published' + blogID);
+        var span = item.closest('.pro-post-item').querySelector('.item-header span');
+        var text = span.innerText;
+        
         var userPostsContainer = document.getElementById('userPostsContainer');
         var publishedNotesContainer = document.getElementById('publishedNotesContainer');
         const proPostPublishedItem = document.createElement('div');
-
+        
+        // Nếu checkbox được chọn (isChecked == true)
         if (isChecked) {
             proPostPublishedItem.className = 'pro-post-published-item';
 
@@ -294,13 +294,13 @@
             const itemHeader = document.createElement('div');
             itemHeader.className = 'item-header';
 
-            // Tạo và thêm nội dung vào phần tử header
             const headerContent = document.createElement('span');
             headerContent.textContent = text;
             const lockIcon = document.createElement('i');
             lockIcon.className = 'fa-solid fa-lock';
             lockIcon.setAttribute('aria-hidden', 'true');
             headerContent.appendChild(lockIcon);
+
             const pencilIcon = document.createElement('i');
             pencilIcon.className = 'fa-solid fa-pencil';
             pencilIcon.setAttribute('aria-hidden', 'true');
@@ -312,7 +312,6 @@
             const itemDesc = document.createElement('div');
             itemDesc.className = 'item-desc';
 
-            // Tạo và thêm nội dung vào phần tử mô tả
             const userAvatar = document.createElement('div');
             userAvatar.className = 'user-avatar post-ava';
             const itemUserName = document.createElement('span');
@@ -340,10 +339,11 @@
 
             publishedNotesContainer.appendChild(proPostPublishedItem);
         } else {
+            // Nếu bỏ chọn checkbox, xóa phần tử khỏi publishedNotesContainer
             var arr = document.querySelectorAll('.pro-post-published-item');
             arr.forEach(element => {
                 if (text == element.querySelector('.item-header span').innerText) {
-                    element.classList.add('none');
+                    element.remove();  // Loại bỏ phần tử khỏi publishedNotesContainer
                 }
             });
         }

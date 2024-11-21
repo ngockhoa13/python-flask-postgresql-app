@@ -592,7 +592,7 @@ def update_published():
                 # Cập nhật trạng thái publish
                 cursor.execute(
                     "UPDATE \"blogPosts\" SET publish = %s WHERE title = %s AND \"userID\" = %s",
-                    (published_status, decode_title, id)
+                    (True, decode_title, id)
                 )
                 conn.commit()
 

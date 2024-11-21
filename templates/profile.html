@@ -283,6 +283,8 @@
         }
 
         var isChecked = checkbox.checked;
+        // In ra giá trị của isChecked để debug
+        console.log("Checkbox checked: " + isChecked);
         var item = document.querySelector('.pro-post-item #published' + blogTitle);
         if (!item) {
             console.error("Item not found for blogTitle: " + blogTitle);

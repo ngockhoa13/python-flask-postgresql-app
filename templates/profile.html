@@ -377,7 +377,9 @@
         }
 
         // Lấy CSRF token từ meta tag
-        var csrfToken = document.querySelector('meta[name="csrf-token"]');
+        var csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        console.log("csrfToken: " + csrfToken);
+
         if (!csrfToken) {
             console.error("CSRF token not found");
             return;
@@ -388,7 +390,7 @@
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken.getAttribute('content')
+                'X-CSRFToken': csrfToken // Không cần .getAttribute('content') nữa
             },
             body: JSON.stringify({
                 blogTitle: blogTitle,

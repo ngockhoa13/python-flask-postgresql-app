@@ -614,7 +614,6 @@ def update_published():
             print(f"ERROR: {error}", flush=True)
             return jsonify({"error": "Server error occurred"}), 500
 
-# Route xem bài viết
 @app.route('/blog/<string:blog_title>')
 @check_session
 def view_blog(blog_title):
@@ -628,25 +627,25 @@ def view_blog(blog_title):
 
             # Lấy thông tin bài viết
             cursor.execute(
-                "SELECT title, content, likes, authorname, \"userID\", publish FROM \"blogPosts\" WHERE title = %s AND publish = TRUE",
+                "SELECT id, title, content, likes, authorname, \"userID\", publish FROM \"blogPosts\" WHERE title = %s AND publish = TRUE",
                 (decode_title,)
             )
             blog_post = cursor.fetchone()
 
             if blog_post:
-                title, content, likes, authorname, userID, publish_status = blog_post
+                blog_id, title, content, likes, authorname, userID, publish_status = blog_post
 
-                # Lấy bình luận
+                # Lấy bình luận liên quan đến bài viết này
                 cursor.execute(
-                    "SELECT username, comment FROM \"commentsBlog\" WHERE title = %s",
-                    (decode_title,)
+                    "SELECT username, comment FROM \"commentsBlog\" WHERE \"blogPostID\" = %s",
+                    (blog_id,)
                 )
                 comment_content = cursor.fetchall()
 
                 # Kiểm tra bài viết đã được like hay chưa
                 cursor.execute(
-                    "SELECT liked FROM \"likedBlogs\" WHERE title = %s AND \"userID\" = %s",
-                    (decode_title, id)
+                    "SELECT liked FROM \"likedBlogs\" WHERE \"blogPostID\" = %s AND \"userID\" = %s",
+                    (blog_id, id)
                 )
                 liked = cursor.fetchone()
                 liked = liked[0] if liked else 0
@@ -668,6 +667,7 @@ def view_blog(blog_title):
         except Exception as error:
             print(f"ERROR: {error}", flush=True)
             return jsonify({"error": "Server error occurred"}), 500
+
 
 
 

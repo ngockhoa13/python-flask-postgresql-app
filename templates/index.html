@@ -793,6 +793,27 @@
           alert(`Error occurred: ${error.message}`);
         });
       }
-    </script>        
+    </script>    
+    <!-- Thêm đoạn mã JavaScript dưới đây -->
+  <script>
+    var blog_page = document.querySelector(".blog-page");
+    var create_blog_icon = document.querySelector(".nav_edit");
+
+    // Kiểm tra xem create_blog_icon có tồn tại không
+    if (create_blog_icon) {
+      create_blog_icon.addEventListener("click", function () {
+        var homePage = document.querySelector(".home-page");
+        if (homePage && blog_page) {
+          if (homePage.classList.contains("none")) {
+            homePage.classList.remove("none");
+            blog_page.classList.add("none");
+          } else {
+            homePage.classList.add("none");
+            blog_page.classList.remove("none");
+          }
+        }
+      });
+    }
+  </script>    
   </body>
 </html>

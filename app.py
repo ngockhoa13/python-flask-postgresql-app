@@ -574,7 +574,6 @@ def check_csrf_token(func):
 # Route cập nhật trạng thái publish
 @app.route("/update_published", methods=["POST"])
 @check_session
-@check_csrf_token
 def update_published():
     id = session.get('id')
     if not id:

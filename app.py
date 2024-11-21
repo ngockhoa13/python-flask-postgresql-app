@@ -558,50 +558,58 @@ def delete_blog():
 
 import secrets
 
-# Giả sử bạn có một hàm để lấy CSRF token từ session
 def get_csrf_token():
     return session.get('_csrf_token')
 
-# Middleware kiểm tra CSRF token
 def check_csrf_token(func):
     @wraps(func)
     def decorated_function(*args, **kwargs):
         csrf_token = request.headers.get('X-CSRFToken')
         if not csrf_token or csrf_token != get_csrf_token():
-            # Trả về mã lỗi 401 (Unauthorized) thay vì 400
+            # Trả về mã lỗi 401 (Unauthorized) nếu CSRF token không hợp lệ
             return jsonify({"error": "CSRF token missing or invalid"}), 401
         return func(*args, **kwargs)
     return decorated_function
 
+
 @app.route("/update_published", methods=["POST"])
 @check_session  # Kiểm tra phiên làm việc (session)
 @check_csrf_token  # Kiểm tra CSRF token
-def published():
+def update_published():
     id = session.get('id')
 
     # Kiểm tra nếu không có id trong session
     if not id:
         return redirect(url_for('login'))
 
-    # Sử dụng context manager để lấy cursor và connection
-    with getDB() as (cursor, conn):  # unpack cursor và conn từ context manager
+    with getDB() as (cursor, conn):
         try:
-            blogID = request.json.get('blogID')
+            blog_title = request.json.get('blog_title')
             published_status = request.json.get('published')
 
-            if blogID is not None and published_status is not None:
-                # Cập nhật trạng thái publish của bài viết
-                cursor.execute("UPDATE \"blogPosts\" SET publish = ? WHERE id = ?", (published_status, blogID))
+            if blog_title and published_status is not None:
+                # Giải mã tiêu đề từ JSON
+                decode_title = unquote(blog_title)
+
+                # Cập nhật trạng thái publish của bài viết dựa vào tiêu đề
+                cursor.execute(
+                    "UPDATE \"blogPosts\" SET publish = ? WHERE title = ? AND \"userID\" = ?",
+                    (published_status, decode_title, id)
+                )
                 conn.commit()
+
+                if cursor.rowcount == 0:
+                    return jsonify({"error": "No rows updated"}), 400
+
                 return jsonify({"message": "Updated"})
             else:
-                # Nếu thiếu dữ liệu, trả về lỗi 400 với thông báo rõ ràng
-                return jsonify({"error": "Missing blogID or published status"}), 400
+                return jsonify({"error": "Missing blog_title or published status"}), 400
 
         except Exception as error:
             print(f"ERROR: {error}", flush=True)
-            # Trả về lỗi 500 nếu có sự cố với server
             return jsonify({"error": "Server error occurred"}), 500
+
+
 
 
 
@@ -610,37 +618,31 @@ def published():
 def view_blog(blog_title):
     id = session.get('id')
 
-    # Sử dụng context manager để lấy cursor và connection
-    with getDB() as (cursor, conn):  # unpack cursor và conn từ context manager
-        # Kiểm tra xem id có tồn tại trong cơ sở dữ liệu không
+    with getDB() as (cursor, conn):
         cursor.execute("SELECT id FROM \"user\" WHERE id = ?", (id,)).fetchone()
-        if not id:        
+        if not id:
             return redirect(url_for('login'))
 
-        # Giải mã title từ URL
         decode_title = unquote(blog_title)
 
-        # Lấy thông tin bài viết từ cơ sở dữ liệu
+        # Lấy thông tin bài viết và trạng thái published
         blog_post = cursor.execute(
-            "SELECT title, content, likes, authorname, \"userID\" FROM \"blogPosts\" WHERE title = ? AND publish = 1",
+            "SELECT title, content, likes, authorname, \"userID\", publish FROM \"blogPosts\" WHERE title = ? AND publish = 1",
             (decode_title,)
         ).fetchone()
 
         if blog_post:
-            title, content, likes, authorname, userID = blog_post
+            title, content, likes, authorname, userID, publish_status = blog_post
 
-            # Lấy thông tin bình luận của bài viết
             comment_content = cursor.execute(
                 "SELECT username, comment FROM \"commentsBlog\" WHERE title = ?", (decode_title,)
             ).fetchall()
 
-            # Kiểm tra xem người dùng đã thích bài viết chưa
             liked = cursor.execute(
                 "SELECT liked FROM \"likedBlogs\" WHERE title = ? AND userID = ?", (decode_title, id)
             ).fetchone()
             liked = liked[0] if liked else 0
 
-            # Trả về trang blog với các thông tin
             return render_template(
                 'blog.html',
                 title=title,
@@ -649,10 +651,12 @@ def view_blog(blog_title):
                 comment_content=comment_content,
                 id=userID,
                 authorname=authorname,
-                liked=liked
+                liked=liked,
+                publish=publish_status
             )
         else:
             return redirect(url_for('home'))
+
 
 
 

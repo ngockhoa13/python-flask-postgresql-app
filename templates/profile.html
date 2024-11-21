@@ -100,10 +100,10 @@
                   </div>
                   <!-- Checkbox for Published -->
                   <div class="published-checkbox">
-                    <label for="published{{ id }}">Published</label>
-                    <input type="checkbox" id="published{{ id }}" name="published" onchange="updatePublished('{{ id }}')" {% if publish == 1 %} checked {% endif %}>
-                  
-                  </div>
+                    <label for="published{{ title }}">Published</label>
+                    <input type="checkbox" id="published{{ title }}" name="published" onchange="updatePublished('{{ title }}')" {% if publish == 1 %} checked {% endif %}>
+                </div>
+                
                   <div class="item-content">
                     {{ content | safe }}
                   </div>
@@ -274,18 +274,38 @@
       }
 
 
-      function updatePublished(blogID) {
-        // Lấy checkbox theo blogID
-        var checkbox = document.getElementById("published" + blogID);
+      function updatePublished(blogTitle) {
+        // Lấy checkbox theo blogTitle
+        var checkbox = document.getElementById("published" + blogTitle);
+        if (!checkbox) {
+            console.error("Checkbox not found for blogTitle: " + blogTitle);
+            return;
+        }
+
         var isChecked = checkbox.checked;
-        var item = document.querySelector('.pro-post-item #published' + blogID);
+        var item = document.querySelector('.pro-post-item #published' + blogTitle);
+        if (!item) {
+            console.error("Item not found for blogTitle: " + blogTitle);
+            return;
+        }
+
         var span = item.closest('.pro-post-item').querySelector('.item-header span');
-        var text = span.innerText;
-        
+        if (!span) {
+            console.error("Span not found in item-header for blogTitle: " + blogTitle);
+            return;
+        }
+
+        var text = span.innerText.trim();
+
         var userPostsContainer = document.getElementById('userPostsContainer');
         var publishedNotesContainer = document.getElementById('publishedNotesContainer');
+        if (!publishedNotesContainer) {
+            console.error("Published Notes Container not found");
+            return;
+        }
+
         const proPostPublishedItem = document.createElement('div');
-        
+
         // Nếu checkbox được chọn (isChecked == true)
         if (isChecked) {
             proPostPublishedItem.className = 'pro-post-published-item';
@@ -337,19 +357,29 @@
             proPostPublishedItem.appendChild(itemHeader);
             proPostPublishedItem.appendChild(itemDesc);
 
-            publishedNotesContainer.appendChild(proPostPublishedItem);
+            // Thêm vào container nếu chưa tồn tại
+            const existingItem = Array.from(publishedNotesContainer.querySelectorAll('.pro-post-published-item'))
+                .find(element => element.querySelector('.item-header span').innerText.trim() === text);
+
+            if (!existingItem) {
+                publishedNotesContainer.appendChild(proPostPublishedItem);
+            }
         } else {
             // Nếu bỏ chọn checkbox, xóa phần tử khỏi publishedNotesContainer
-            var arr = document.querySelectorAll('.pro-post-published-item');
-            arr.forEach(element => {
-                if (text == element.querySelector('.item-header span').innerText) {
-                    element.remove();  // Loại bỏ phần tử khỏi publishedNotesContainer
+            const items = Array.from(publishedNotesContainer.querySelectorAll('.pro-post-published-item'));
+            items.forEach(element => {
+                if (text === element.querySelector('.item-header span').innerText.trim()) {
+                    element.remove(); // Loại bỏ phần tử
                 }
             });
         }
 
         // Lấy CSRF token từ meta tag
-        var csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        var csrfToken = document.querySelector('meta[name="csrf-token"]');
+        if (!csrfToken) {
+            console.error("CSRF token not found");
+            return;
+        }
 
         // Tạo yêu cầu AJAX để cập nhật trạng thái published
         var xhr = new XMLHttpRequest();
@@ -357,11 +387,24 @@
         xhr.setRequestHeader("Content-Type", "application/json");
 
         // Thêm CSRF token vào header của yêu cầu
-        xhr.setRequestHeader("X-CSRFToken", csrfToken);
+        xhr.setRequestHeader("X-CSRFToken", csrfToken.getAttribute('content'));
 
-        // Gửi ID blog và trạng thái published trong thân yêu cầu
-        xhr.send(JSON.stringify({ blogID: blogID, published: isChecked }));
+        // Gửi blogTitle và trạng thái published trong thân yêu cầu
+        xhr.onload = function () {
+            if (xhr.status === 200) {
+                console.log("Blog published status updated successfully.");
+            } else {
+                console.error("Failed to update published status. Response:", xhr.responseText);
+            }
+        };
+
+        xhr.onerror = function () {
+            console.error("AJAX request failed.");
+        };
+
+        xhr.send(JSON.stringify({ blogTitle: blogTitle, published: isChecked }));
     }
+
     </script>
     
     <script src="../static/responsive/tablet.js"></script>

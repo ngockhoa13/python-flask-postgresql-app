@@ -18,13 +18,13 @@ def upgrade():
     conn = op.get_bind()
     inspector = inspect(conn)
 
-     # Create 'user' table with UUID for 'id'
+    # Create 'user' table with UUID for 'id'
     op.create_table('user',
         sa.Column('id', sa.UUID(), primary_key=True, unique=True, nullable=False, default=uuid.uuid4),
         sa.Column('name', sa.String(20), nullable=True),
-        sa.Column('username', sa.String(20), nullable=False),
+        sa.Column('username', sa.String(100), nullable=False),
         sa.Column('emailAddr', sa.String(150), unique=True, nullable=False),
-        sa.Column('password', sa.String(60), nullable=False),
+        sa.Column('password', sa.String(255), nullable=False),
     )
 
     # Create 'blogPosts' table with UUID for 'userID' and 'title' as unique
@@ -39,7 +39,7 @@ def upgrade():
         sa.Column('likes', sa.Integer(), default=0),
     )
 
-    # Create 'commentsBlog' table with UUID for 'userID' and 'title'
+    # Create 'commentsBlog' table with UUID for 'userID' and 'blogPostID'
     op.create_table('commentsBlog',
         sa.Column('id', sa.UUID(), primary_key=True, unique=True, nullable=False, default=uuid.uuid4),  # UUID
         sa.Column('blogPostID', sa.UUID(), sa.ForeignKey('blogPosts.id', ondelete='CASCADE'), nullable=False),  # UUID
@@ -57,9 +57,8 @@ def upgrade():
     # Create 'messages' table with UUID for 'room_id'
     op.create_table('messages',
         sa.Column('id', sa.UUID(), primary_key=True, unique=True, nullable=False, default=uuid.uuid4),
-        sa.Column('room_id', sa.UUID(), unique=True, nullable=False),  # Sửa lại kiểu dữ liệu thành UUID
+        sa.Column('room_id', sa.UUID(), unique=True, nullable=False),  # UUID
     )
-
 
     # Create 'chat_messages' table with UUID for 'room_id' and 'sender_id'
     op.create_table('chat_messages',
@@ -70,7 +69,6 @@ def upgrade():
         sa.Column('sender_username', sa.String(50), nullable=False),
         sa.Column('room_id', sa.UUID(), sa.ForeignKey('messages.room_id', ondelete='CASCADE'), nullable=False),  # UUID
     )
-
 
     # Create 'notification' table with UUID for 'myid' and 'from_id'
     op.create_table('notification',

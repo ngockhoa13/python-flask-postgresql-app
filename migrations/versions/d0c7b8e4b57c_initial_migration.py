@@ -57,8 +57,9 @@ def upgrade():
     # Create 'messages' table with UUID for 'room_id'
     op.create_table('messages',
         sa.Column('id', sa.UUID(), primary_key=True, unique=True, nullable=False, default=uuid.uuid4),
-        sa.Column('room_id', sa.String(50), unique=True, nullable=False),
+        sa.Column('room_id', sa.UUID(), unique=True, nullable=False),  # Sửa lại kiểu dữ liệu thành UUID
     )
+
 
     # Create 'chat_messages' table with UUID for 'room_id' and 'sender_id'
     op.create_table('chat_messages',
@@ -69,6 +70,7 @@ def upgrade():
         sa.Column('sender_username', sa.String(50), nullable=False),
         sa.Column('room_id', sa.UUID(), sa.ForeignKey('messages.room_id', ondelete='CASCADE'), nullable=False),  # UUID
     )
+
 
     # Create 'notification' table with UUID for 'myid' and 'from_id'
     op.create_table('notification',
